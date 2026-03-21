@@ -1,0 +1,5 @@
+npx hardhat run scripts/deploy.ts --network sepolia
+
+hardhat.config.ts
+
+url: "https://ethereum-sepolia-rpc.publicnode.com"

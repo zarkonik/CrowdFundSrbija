@@ -1,0 +1,35 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_28-4fa587f9148fa7589fd1ee813b26e100bf410aff",
+  "solcVersion": "0.8.28",
+  "solcLongVersion": "0.8.28+commit.7893614a",
+  "userSourceNameMap": {
+    "contracts/CrowdFunding.sol": "project/contracts/CrowdFunding.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "cancun",
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/CrowdFunding.sol": {
+        "content": "// SPDX-License-Identifier: UNLICENSED \r\npragma solidity ^0.8.28;\r\n\r\ncontract CrowdFunding{\r\n    struct Campaign{\r\n        address owner;\r\n        string title;\r\n        string description;\r\n        uint256 target;\r\n        uint256 deadline;\r\n        uint256 amountCollected;\r\n        string image;\r\n        address[] donators;\r\n        uint256[] donations;\r\n    }\r\n\r\n    mapping(uint256 => Campaign) public campaigns;\r\n\r\n    uint256 public numberOfCampaigns;\r\n\r\n    function createCampaign(address _owner, string memory _title, string memory _description, \r\n   uint256 _target, uint256 _deadline, string memory _image) public returns (uint256) {\r\n        Campaign storage campaign = campaigns[numberOfCampaigns];\r\n        //is everything ok\r\n        require(_deadline < block.timestamp, \"The deadline should be date in the future!\");\r\n        campaign.owner = _owner;\r\n        campaign.title = _title;\r\n        campaign.description = _description;\r\n        campaign.target = _target;\r\n        campaign.deadline = _deadline;\r\n        campaign.image = _image;\r\n        campaign.amountCollected = 0;\r\n\r\n        numberOfCampaigns++;\r\n\r\n        return numberOfCampaigns - 1;\r\n   }\r\n    function donateToCampaign(uint256 _id) public payable{\r\n        uint256 amount  = msg.value;//sta se salje iz frontenda\r\n        Campaign storage campaign = campaigns[_id];\r\n        campaign.donators.push(msg.sender);//addresa posiljaoca\r\n        campaign.donations.push(amount);\r\n\r\n        (bool sent, ) = payable(campaign.owner).call{value: amount}(\"\");\r\n\r\n        if(sent){\r\n            campaign.amountCollected = campaign.amountCollected + amount;\r\n        }\r\n    } \r\n    function getDonators(uint256 _id) view public returns (address[] memory, uint256[] memory){\r\n        return (campaigns[_id].donators, campaigns[_id].donations);\r\n    }\r\n    function getCampaigns() public view returns (Campaign[] memory){\r\n        Campaign[] memory allCampaigns = new Campaign[](numberOfCampaigns);\r\n        for(uint256 i = 0; i < numberOfCampaigns; i++){\r\n            Campaign storage item = campaigns[i];\r\n            allCampaigns[i] = item;\r\n        }\r\n        return allCampaigns;\r\n    }\r\n}"
+      }
+    }
+  }
+}
