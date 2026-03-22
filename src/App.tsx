@@ -1,11 +1,30 @@
+import React from "react";
 import { ConnectButton } from "thirdweb/react";
 import { client, activeChain } from "./client";
+import { Route, Routes } from "react-router-dom";
+// @ts-ignore
+import { Sidebar, Navbar } from "./components";
+// @ts-ignore
+import { CampaignDetails, CreateCampaign, Home, Profile } from "./pages";
 
-export default function App() {
+const App = () => {
   return (
-    <div>
-      <h1>My ThirdWeb App</h1>
+    <div className="relative sm: -8 p-4 bg-[#13131a] min-h-screen flex flex-row">
+      <div className="sm:flex hidden mr-10 relative">
+        <Sidebar />
+      </div>
+      <div className="flex-1 max-sm:w-full max-w-[1280px] mx-auto sm:pr-5">
+        <Navbar />
+      </div>
+
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/create-campaign" element={<CreateCampaign />} />
+        <Route path="campaign-details/:id" element={<CampaignDetails />} />
+      </Routes>
       <ConnectButton client={client} chains={[activeChain]} />
     </div>
   );
-}
+};
+export default App;
