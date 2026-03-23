@@ -1,9 +1,9 @@
-import type { HardhatUserConfig } from "hardhat/config";
+import { defineConfig } from "hardhat/config";
 import hardhatToolboxMochaEthers from "@nomicfoundation/hardhat-toolbox-mocha-ethers";
 import { configVariable } from "hardhat/config";
 
-const config: HardhatUserConfig = {
-  plugins: [hardhatToolboxMochaEthers], // 👈 v3 uses plugins array
+export default defineConfig({
+  plugins: [hardhatToolboxMochaEthers],
   solidity: {
     profiles: {
       default: { version: "0.8.28" },
@@ -16,10 +16,13 @@ const config: HardhatUserConfig = {
   networks: {
     sepolia: {
       type: "http",
-      url: "https://ethereum-sepolia-rpc.publicnode.com", // 👈 v3 uses configVariable
+      url: "https://ethereum-sepolia-rpc.publicnode.com",
       accounts: [configVariable("PRIVATE_KEY")],
     },
   },
-};
-
-export default config;
+  verify: {
+    etherscan: {
+      apiKey: configVariable("ETHERSCAN_API_KEY"),
+    },
+  },
+});

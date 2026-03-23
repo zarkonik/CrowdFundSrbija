@@ -13,7 +13,7 @@ import { checkIfImage } from "../utils";
 const CreateCampaign = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const { createCampaign } = useStateContext();
+  const { createCampaign }: any = useStateContext();
   const [form, setForm] = useState({
     name: "",
     title: "",
@@ -35,7 +35,7 @@ const CreateCampaign = () => {
         setIsLoading(true);
         await createCampaign({
           ...form,
-          target: ethers.utils.parseUnits(form.target, 18),
+          target: ethers.parseUnits(form.target, 18),
         });
         setIsLoading(false);
         navigate("/");
