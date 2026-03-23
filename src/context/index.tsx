@@ -11,19 +11,23 @@ import {
   useSendTransaction,
 } from "thirdweb/react";
 import { createWallet } from "thirdweb/wallets";
+import { ethers } from "ethers";
 import { parseUnits } from "ethers";
+import { readContract } from "thirdweb";
+import { formatEther } from "ethers";
 
 const client = createThirdwebClient({
   clientId: import.meta.env.VITE_THIRDWEB_CLIENT_ID,
 });
 
-const contractAddress = "0x6F9A21139611A75Ffc9D3A1af96d838B7Da8d34B";
+const contractAddress = "0xB2e292EBB70431522b794b32e0581811c43a3e7c"; //don't forget this
 
 type StateContextType = {
   address: string | undefined;
   contract: any;
   connect: () => void;
   createCampaign: (form: any) => Promise<void>;
+  getCampaigns: () => Promise<any[]>;
 };
 
 const StateContext = createContext<StateContextType | undefined>(undefined);
@@ -59,7 +63,7 @@ export const StateContextProvider = ({ children }: any) => {
           form.title,
           form.description,
           form.target,
-          BigInt(new Date(form.deadline).getTime()),
+          BigInt(Math.floor(new Date(form.deadline).getTime() / 1000)),
           form.image,
         ],
       });
@@ -71,6 +75,30 @@ export const StateContextProvider = ({ children }: any) => {
     }
   };
 
+  const getCampaigns = async () => {
+    if (!contract) return []; // 👈 guard
+
+    const campaigns = await readContract({
+      contract,
+      method:
+        "function getCampaigns() view returns ((address owner, string title, string description, uint256 target, uint256 deadline, uint256 amountCollected, string image)[])",
+      params: [],
+    });
+
+    const parsedCampaigns = (campaigns as any[]).map((campaign, i) => ({
+      owner: campaign.owner,
+      title: campaign.title,
+      description: campaign.description,
+      target: formatEther(campaign.target),
+      deadline: Number(campaign.deadline),
+      amountCollected: formatEther(campaign.amountCollected),
+      image: campaign.image,
+      pId: i,
+    }));
+
+    return parsedCampaigns;
+  };
+
   return (
     <StateContext.Provider
       value={{
@@ -78,6 +106,7 @@ export const StateContextProvider = ({ children }: any) => {
         contract,
         connect: handleConnect,
         createCampaign: publishCampaign,
+        getCampaigns: getCampaigns,
       }}
     >
       {children}
