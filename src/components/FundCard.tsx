@@ -1,4 +1,3 @@
-import React from "react";
 // @ts-ignore
 import { tagType, thirdweb } from "../assets";
 // @ts-ignore

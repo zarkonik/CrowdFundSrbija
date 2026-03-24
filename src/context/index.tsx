@@ -1,4 +1,4 @@
-import React, { useContext, createContext } from "react";
+import { useContext, createContext } from "react";
 import {
   createThirdwebClient,
   getContract,
@@ -11,8 +11,7 @@ import {
   useSendTransaction,
 } from "thirdweb/react";
 import { createWallet } from "thirdweb/wallets";
-import { ethers } from "ethers";
-import { parseUnits } from "ethers";
+
 import { readContract } from "thirdweb";
 import { parseEther, formatEther } from "ethers";
 

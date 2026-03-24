@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 // @ts-ignore
 import { DisplayCampaigns } from "../components";
 import { useStateContext } from "../context";
 
 const Home = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [campaigns, setCampaigns] = useState([]);
 
   const { address, contract, getCampaigns }: any = useStateContext();

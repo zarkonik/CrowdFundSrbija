@@ -1,4 +1,3 @@
-import React from "react";
 import { ConnectButton } from "thirdweb/react";
 import { client, activeChain } from "./client";
 import { Route, Routes } from "react-router-dom";
