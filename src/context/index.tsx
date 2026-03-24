@@ -14,7 +14,7 @@ import { createWallet } from "thirdweb/wallets";
 import { ethers } from "ethers";
 import { parseUnits } from "ethers";
 import { readContract } from "thirdweb";
-import { formatEther } from "ethers";
+import { parseEther, formatEther } from "ethers";
 
 const client = createThirdwebClient({
   clientId: import.meta.env.VITE_THIRDWEB_CLIENT_ID,
@@ -28,6 +28,9 @@ type StateContextType = {
   connect: () => void;
   createCampaign: (form: any) => Promise<void>;
   getCampaigns: () => Promise<any[]>;
+  getUserCampaigns: () => Promise<any[]>;
+  donate: (pId: any, amount: any) => Promise<any>;
+  getDonations: (pId: any) => Promise<any[]>;
 };
 
 const StateContext = createContext<StateContextType | undefined>(undefined);
@@ -99,6 +102,51 @@ export const StateContextProvider = ({ children }: any) => {
     return parsedCampaigns;
   };
 
+  const getUserCampaigns = async () => {
+    const allCampaigns = await getCampaigns();
+
+    const filteredCampaigns = allCampaigns.filter(
+      (campaign) => campaign.owner === address,
+    );
+
+    return filteredCampaigns;
+  };
+
+  const donate = async (pId: any, amount: any) => {
+    const transaction = prepareContractCall({
+      contract,
+      method: "function donateToCampaign(uint256 _id) payable",
+      params: [BigInt(pId)],
+      value: parseEther(amount),
+    });
+
+    const data = await sendTransaction(transaction);
+    return data;
+  };
+
+  const getDonations = async (pId: any) => {
+    if (!contract) return [];
+
+    const donations = await readContract({
+      contract,
+      method:
+        "function getDonators(uint256 _id) view returns (address[], uint256[])",
+      params: [BigInt(pId)],
+    });
+
+    const numberOfDonations = donations[0].length;
+    const parsedDonations = [];
+
+    for (let i = 0; i < numberOfDonations; i++) {
+      parsedDonations.push({
+        donator: donations[0][i],
+        donation: formatEther(donations[1][i]),
+      });
+    }
+
+    return parsedDonations;
+  };
+
   return (
     <StateContext.Provider
       value={{
@@ -107,6 +155,9 @@ export const StateContextProvider = ({ children }: any) => {
         connect: handleConnect,
         createCampaign: publishCampaign,
         getCampaigns: getCampaigns,
+        getUserCampaigns: getUserCampaigns,
+        donate: donate,
+        getDonations: getDonations,
       }}
     >
       {children}
