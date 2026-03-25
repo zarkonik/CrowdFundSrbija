@@ -1,3 +1,6 @@
+For this project to work, or to do the transactions, you need to first go to "Connect" button in top right corner. But, before that..you need to add a crypto wallet. I used MetaMask as a Chrome extension. Just Google for MetaMask Google Chrome extension and add it. Now, when you click on Connect button on my website..popup will appear. Then, you go to Connect a Wallet. Pick MetaMask and register account for MetaMask. 
+Next step is to add some Funds to your wallet if you don't have any. You can use test Sepolia network and add some funds for testing the websites with fake SepoliaETH currency. The way you add test funds is that 
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
