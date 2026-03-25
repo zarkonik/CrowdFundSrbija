@@ -1,5 +1,9 @@
 For this project to work, or to do the transactions, you need to first go to "Connect" button in top right corner. But, before that..you need to add a crypto wallet. I used MetaMask as a Chrome extension. Just Google for MetaMask Google Chrome extension and add it. Now, when you click on Connect button on my website..popup will appear. Then, you go to Connect a Wallet. Pick MetaMask and register account for MetaMask. 
-Next step is to add some Funds to your wallet if you don't have any. You can use test Sepolia network and add some funds for testing the websites with fake SepoliaETH currency. The way you add test funds is that 
+Next step is to add some Funds to your wallet if you don't have any. You can use test Sepolia network and add some funds for testing the websites with fake SepoliaETH currency. The way you add test funds is that you use Google account for doing that. Here is a Google search query that will explain you how to do it: 
+
+"how to get test funds on metamask account on sepolia network via google account"
+
+After that you can do creating Campaigns and funding them on this website with Sepolia ETH you got.
 
 # React + TypeScript + Vite
 
