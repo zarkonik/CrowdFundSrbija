@@ -1,162 +1,211 @@
-import { useContext, createContext } from "react";
+import { useContext, createContext, useEffect, useState } from "react";
+import { signInWithPopup, onAuthStateChanged, type User } from "firebase/auth";
 import {
-  createThirdwebClient,
-  getContract,
-  prepareContractCall,
-} from "thirdweb";
-import { sepolia } from "thirdweb/chains";
-import {
-  useActiveAccount,
-  useConnect,
-  useSendTransaction,
-} from "thirdweb/react";
-import { createWallet } from "thirdweb/wallets";
+  collection,
+  addDoc,
+  getDoc,
+  getDocs,
+  doc,
+  query,
+  where,
+  orderBy,
+  runTransaction,
+  serverTimestamp,
+  type DocumentData,
+  type QueryDocumentSnapshot,
+} from "firebase/firestore";
+import { auth, googleProvider, db } from "../firebase";
 
-import { readContract } from "thirdweb";
-import { parseEther, formatEther } from "ethers";
+export type Campaign = {
+  pId: string;
+  owner: string;
+  title: string;
+  description: string;
+  targetCents: number;
+  deadline: number;
+  amountCollectedCents: number;
+  image: string;
+};
 
-const client = createThirdwebClient({
-  clientId: import.meta.env.VITE_THIRDWEB_CLIENT_ID,
-});
+export type Donation = {
+  donator: string;
+  donationCents: number;
+  createdAt: number;
+};
 
-const contractAddress = "0xB2e292EBB70431522b794b32e0581811c43a3e7c"; //don't forget this
+type CreateCampaignForm = {
+  title: string;
+  description: string;
+  targetCents: number;
+  deadline: number;
+  image: string;
+};
 
 type StateContextType = {
   address: string | undefined;
-  contract: any;
   connect: () => void;
-  createCampaign: (form: any) => Promise<void>;
-  getCampaigns: () => Promise<any[]>;
-  getUserCampaigns: () => Promise<any[]>;
-  donate: (pId: any, amount: any) => Promise<any>;
-  getDonations: (pId: any) => Promise<any[]>;
+  createCampaign: (form: CreateCampaignForm) => Promise<Campaign>;
+  getCampaigns: () => Promise<Campaign[]>;
+  getUserCampaigns: () => Promise<Campaign[]>;
+  donate: (
+    pId: string,
+    amountCents: number,
+  ) => Promise<{ balanceCents: number }>;
+  getDonations: (pId: string) => Promise<Donation[]>;
+  getBalance: () => Promise<number>;
+  topUpBalance: (amountCents: number) => Promise<number>;
 };
 
 const StateContext = createContext<StateContextType | undefined>(undefined);
 
-export const StateContextProvider = ({ children }: any) => {
-  const account = useActiveAccount();
-  const address = account?.address;
+const campaignFromDoc = (
+  docSnap: QueryDocumentSnapshot<DocumentData>,
+): Campaign => {
+  const data = docSnap.data();
+  return {
+    pId: docSnap.id,
+    owner: data.ownerAddress,
+    title: data.title,
+    description: data.description,
+    targetCents: data.targetCents,
+    deadline: data.deadline,
+    amountCollectedCents: data.amountCollectedCents ?? 0,
+    image: data.image,
+  };
+};
 
-  const { connect } = useConnect();
-  const handleConnect = () =>
-    connect(async () => {
-      const wallet = createWallet("io.metamask");
-      await wallet.connect({ client });
-      return wallet;
+export const StateContextProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  const [address, setAddress] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user: User | null) => {
+      setAddress(user?.uid);
     });
+    return unsubscribe;
+  }, []);
 
-  const contract = getContract({
-    client,
-    chain: sepolia,
-    address: contractAddress,
-  });
+  const connect = () => {
+    signInWithPopup(auth, googleProvider);
+  };
 
-  const { mutateAsync: sendTransaction } = useSendTransaction();
-
-  const publishCampaign = async (form: any) => {
-    try {
-      const transaction = prepareContractCall({
-        contract,
-        method:
-          "function createCampaign(address _owner, string _title, string _description, uint256 _target, uint256 _deadline, string _image)",
-        params: [
-          address as string,
-          form.title,
-          form.description,
-          form.target,
-          BigInt(Math.floor(new Date(form.deadline).getTime() / 1000)),
-          form.image,
-        ],
-      });
-
-      const data = await sendTransaction(transaction);
-      console.log("contract call success", data);
-    } catch (error) {
-      console.log("contract call failure", error);
-    }
+  const createCampaign = async (form: CreateCampaignForm) => {
+    const campaignsRef = collection(db, "campaigns");
+    const docRef = await addDoc(campaignsRef, {
+      ownerAddress: address,
+      title: form.title,
+      description: form.description,
+      targetCents: form.targetCents,
+      deadline: form.deadline,
+      image: form.image,
+      amountCollectedCents: 0,
+      createdAt: serverTimestamp(),
+    });
+    const snap = await getDoc(docRef);
+    return campaignFromDoc(snap as QueryDocumentSnapshot<DocumentData>);
   };
 
   const getCampaigns = async () => {
-    if (!contract) return []; // 👈 guard
-
-    const campaigns = await readContract({
-      contract,
-      method:
-        "function getCampaigns() view returns ((address owner, string title, string description, uint256 target, uint256 deadline, uint256 amountCollected, string image)[])",
-      params: [],
-    });
-
-    const parsedCampaigns = (campaigns as any[]).map((campaign, i) => ({
-      owner: campaign.owner,
-      title: campaign.title,
-      description: campaign.description,
-      target: formatEther(campaign.target),
-      deadline: Number(campaign.deadline),
-      amountCollected: formatEther(campaign.amountCollected),
-      image: campaign.image,
-      pId: i,
-    }));
-
-    return parsedCampaigns;
+    const snap = await getDocs(collection(db, "campaigns"));
+    return snap.docs.map(campaignFromDoc);
   };
 
   const getUserCampaigns = async () => {
-    const allCampaigns = await getCampaigns();
-
-    const filteredCampaigns = allCampaigns.filter(
-      (campaign) => campaign.owner === address,
+    const q = query(
+      collection(db, "campaigns"),
+      where("ownerAddress", "==", address),
     );
-
-    return filteredCampaigns;
+    const snap = await getDocs(q);
+    return snap.docs.map(campaignFromDoc);
   };
 
-  const donate = async (pId: any, amount: any) => {
-    const transaction = prepareContractCall({
-      contract,
-      method: "function donateToCampaign(uint256 _id) payable",
-      params: [BigInt(pId)],
-      value: parseEther(amount),
+  const getDonations = async (pId: string) => {
+    const q = query(
+      collection(db, "campaigns", pId, "donations"),
+      orderBy("createdAt", "asc"),
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => {
+      const data = d.data();
+      return {
+        donator: data.donatorAddress,
+        donationCents: data.amountCents,
+        createdAt: data.createdAt?.toMillis?.() ?? Date.now(),
+      };
     });
-
-    const data = await sendTransaction(transaction);
-    return data;
   };
 
-  const getDonations = async (pId: any) => {
-    if (!contract) return [];
+  const donate = async (pId: string, amountCents: number) => {
+    const balanceRef = doc(db, "balances", address as string);
+    const campaignRef = doc(db, "campaigns", pId);
+    const donationRef = doc(collection(db, "campaigns", pId, "donations"));
 
-    const donations = await readContract({
-      contract,
-      method:
-        "function getDonators(uint256 _id) view returns (address[], uint256[])",
-      params: [BigInt(pId)],
-    });
+    let balanceCents = 0;
 
-    const numberOfDonations = donations[0].length;
-    const parsedDonations = [];
+    await runTransaction(db, async (tx) => {
+      const balanceSnap = await tx.get(balanceRef);
+      const currentBalance = balanceSnap.exists()
+        ? balanceSnap.data().balanceCents
+        : 0;
 
-    for (let i = 0; i < numberOfDonations; i++) {
-      parsedDonations.push({
-        donator: donations[0][i],
-        donation: formatEther(donations[1][i]),
+      if (currentBalance < amountCents) {
+        throw new Error("Insufficient balance");
+      }
+
+      const campaignSnap = await tx.get(campaignRef);
+      const currentCollected = campaignSnap.data()?.amountCollectedCents ?? 0;
+
+      balanceCents = currentBalance - amountCents;
+
+      tx.set(balanceRef, { balanceCents }, { merge: true });
+      tx.update(campaignRef, {
+        amountCollectedCents: currentCollected + amountCents,
       });
-    }
+      tx.set(donationRef, {
+        donatorAddress: address,
+        amountCents,
+        createdAt: serverTimestamp(),
+      });
+    });
 
-    return parsedDonations;
+    return { balanceCents };
+  };
+
+  const getBalance = async () => {
+    if (!address) return 0;
+    const snap = await getDoc(doc(db, "balances", address));
+    return snap.exists() ? snap.data().balanceCents : 0;
+  };
+
+  const topUpBalance = async (amountCents: number) => {
+    const balanceRef = doc(db, "balances", address as string);
+    let balanceCents = 0;
+
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(balanceRef);
+      const current = snap.exists() ? snap.data().balanceCents : 0;
+      balanceCents = current + amountCents;
+      tx.set(balanceRef, { balanceCents }, { merge: true });
+    });
+
+    return balanceCents;
   };
 
   return (
     <StateContext.Provider
       value={{
         address,
-        contract,
-        connect: handleConnect,
-        createCampaign: publishCampaign,
-        getCampaigns: getCampaigns,
-        getUserCampaigns: getUserCampaigns,
-        donate: donate,
-        getDonations: getDonations,
+        connect,
+        createCampaign,
+        getCampaigns,
+        getUserCampaigns,
+        donate,
+        getDonations,
+        getBalance,
+        topUpBalance,
       }}
     >
       {children}

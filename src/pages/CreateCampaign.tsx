@@ -1,26 +1,25 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ethers } from "ethers";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 // @ts-ignore
 import { useStateContext } from "../context";
+import { storage } from "../firebase";
 // @ts-ignore
 import { money } from "../assets";
 // @ts-ignore
 import { CustomButton, FormField, Loader } from "../components";
-// @ts-ignore
-import { checkIfImage } from "../utils";
 
 const CreateCampaign = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const { createCampaign }: any = useStateContext();
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [form, setForm] = useState({
     name: "",
     title: "",
     description: "",
     target: "",
     deadline: "",
-    image: "",
   });
 
   const handleFormFieldChange = (fieldName: any, e: any) => {
@@ -30,20 +29,30 @@ const CreateCampaign = () => {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
-    checkIfImage(form.image, async (exists: any) => {
-      if (exists) {
-        setIsLoading(true);
-        await createCampaign({
-          ...form,
-          target: ethers.parseUnits(form.target, 18),
-        });
-        setIsLoading(false);
-        navigate("/");
-      } else {
-        alert("Provide valid image URL");
-        setForm({ ...form, image: "" });
-      }
+    if (!imageFile) {
+      alert("Please choose a campaign image");
+      return;
+    }
+
+    setIsLoading(true);
+
+    const imageRef = storageRef(
+      storage,
+      `campaign-images/${Date.now()}-${imageFile.name}`,
+    );
+    await uploadBytes(imageRef, imageFile);
+    const imageUrl = await getDownloadURL(imageRef);
+
+    await createCampaign({
+      title: form.title,
+      description: form.description,
+      image: imageUrl,
+      targetCents: Math.round(parseFloat(form.target) * 100),
+      deadline: Math.floor(new Date(form.deadline).getTime() / 1000),
     });
+
+    setIsLoading(false);
+    navigate("/");
   };
 
   return (
@@ -97,8 +106,8 @@ const CreateCampaign = () => {
 
         <div className="flex flex-wrap gap-[40px]">
           <FormField
-            labelName="Goal *"
-            placeholder="ETH 0.50"
+            labelName="Goal ($) *"
+            placeholder="50.00"
             inputType="text"
             value={form.target}
             handleChange={(e: any) => handleFormFieldChange("target", e)}
@@ -112,13 +121,18 @@ const CreateCampaign = () => {
           />
         </div>
 
-        <FormField
-          labelName="Campaign image *"
-          placeholder="Place image URL of your campaign"
-          inputType="url"
-          value={form.image}
-          handleChange={(e: any) => handleFormFieldChange("image", e)}
-        />
+        <label className="flex-1 w-full flex flex-col">
+          <span className="font-epilogue font-medium text-[14px] leading-[22px] text-[#808191] mb-[10px]">
+            Campaign image *
+          </span>
+          <input
+            required
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+            className="py-[15px] sm:px-[25px] px-[15px] outline-none border-[1px] border-[#3a3a43] bg-transparent font-epilogue text-white text-[14px] rounded-[10px] sm:min-w-[300px]"
+          />
+        </label>
 
         <div className="flex justify-center items-center mt-[40px]">
           <CustomButton

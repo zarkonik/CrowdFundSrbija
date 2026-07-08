@@ -1,5 +1,3 @@
-import { ConnectButton } from "thirdweb/react";
-import { client, activeChain } from "./client";
 import { Route, Routes } from "react-router-dom";
 // @ts-ignore
 import { Sidebar, Navbar } from "./components";
@@ -22,7 +20,6 @@ const App = () => {
         <Route path="/create-campaign" element={<CreateCampaign />} />
         <Route path="campaign-details/:id" element={<CampaignDetails />} />
       </Routes>
-      <ConnectButton client={client} chains={[activeChain]} />
     </div>
   );
 };
