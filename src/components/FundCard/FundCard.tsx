@@ -42,8 +42,12 @@ const FundCard = ({
             </p>
           </div>
           <div className="fund-card-stat">
-            <h4 className="fund-card-stat-value">{remainingDays}</h4>
-            <p className="fund-card-stat-label">Days Left</p>
+            <h4 className="fund-card-stat-value">
+              {remainingDays > 0 ? remainingDays : "Ended"}
+            </h4>
+            <p className="fund-card-stat-label">
+              {remainingDays > 0 ? "Days Left" : ""}
+            </p>
           </div>
         </div>
 

@@ -5,32 +5,35 @@ import { useStateContext } from "../../context";
 // @ts-ignore
 import { CountBox, CustomButton, FakePayPalModal, Loader } from "../../components";
 // @ts-ignore
-import { calculateBarPercentage, centsToDollars, daysLeft } from "../../utils";
+import { calculateBarPercentage, centsToDollars, daysLeft, getCampaignStatus } from "../../utils";
 // @ts-ignore
 import { thirdweb } from "../../assets";
 import "./CampaignDetails.css";
 
 const CampaignDetails = () => {
   const { state } = useLocation();
-  const { getDonations }: any = useStateContext();
+  const { getDonations, getCampaign, markPayoutSent, isAdmin }: any =
+    useStateContext();
 
   const [isLoading, setIsLoading] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
   const [donators, setDonators] = useState<any[]>([]);
-  const [amountCollectedCents, setAmountCollectedCents] = useState(
-    state.amountCollectedCents,
-  );
+  const [campaign, setCampaign] = useState(state);
+  const [transactionId, setTransactionId] = useState("");
 
-  const remainingDays = daysLeft(state.deadline);
+  const remainingDays = daysLeft(campaign.deadline);
+  const status = getCampaignStatus(campaign);
 
   const fetchDonators = async () => {
     setIsLoading(true);
-    const data = await getDonations(state.pId);
+    const data = await getDonations(campaign.pId);
     setDonators(data);
-    setAmountCollectedCents(
-      data.reduce((sum: number, d: any) => sum + d.donationCents, 0),
-    );
     setIsLoading(false);
+  };
+
+  const refreshCampaign = async () => {
+    const fresh = await getCampaign(campaign.pId);
+    setCampaign(fresh);
   };
 
   useEffect(() => {
@@ -40,6 +43,14 @@ const CampaignDetails = () => {
   const handleDonationSuccess = () => {
     setShowPayModal(false);
     fetchDonators();
+    refreshCampaign();
+  };
+
+  const handleMarkPayoutSent = async () => {
+    setIsLoading(true);
+    await markPayoutSent(campaign.pId, transactionId);
+    await refreshCampaign();
+    setIsLoading(false);
   };
 
   return (
@@ -49,7 +60,7 @@ const CampaignDetails = () => {
       <div className="campaign-details-top">
         <div className="campaign-details-media">
           <img
-            src={state.image}
+            src={campaign.image}
             alt="campaign"
             className="campaign-details-image"
           />
@@ -58,8 +69,8 @@ const CampaignDetails = () => {
               className="campaign-details-progress-bar"
               style={{
                 width: `${calculateBarPercentage(
-                  state.targetCents,
-                  amountCollectedCents,
+                  campaign.targetCents,
+                  campaign.amountCollectedCents,
                 )}%`,
               }}
             ></div>
@@ -67,14 +78,65 @@ const CampaignDetails = () => {
         </div>
 
         <div className="campaign-details-stats">
-          <CountBox title="Days Left" value={remainingDays} />
           <CountBox
-            title={`Raised of $${centsToDollars(state.targetCents)}`}
-            value={`$${centsToDollars(amountCollectedCents)}`}
+            title={remainingDays > 0 ? "Days Left" : "Status"}
+            value={remainingDays > 0 ? remainingDays : "Ended"}
+          />
+          <CountBox
+            title={`Raised of $${centsToDollars(campaign.targetCents)}`}
+            value={`$${centsToDollars(campaign.amountCollectedCents)}`}
           />
           <CountBox title="Total Backers" value={donators.length} />
         </div>
       </div>
+
+      {status === "successful" && (
+        <div className="campaign-details-status campaign-details-status-successful">
+          <p>
+            🎉 This campaign reached its goal! The payout to the creator is
+            pending.
+          </p>
+        </div>
+      )}
+
+      {status === "paid_out" && (
+        <div className="campaign-details-status campaign-details-status-paid">
+          <p>
+            ✅ Payout sent on{" "}
+            {new Date(campaign.payoutSentAt).toLocaleDateString()}
+            {campaign.payoutTransactionId &&
+              ` — Transaction ID: ${campaign.payoutTransactionId}`}
+          </p>
+        </div>
+      )}
+
+      {status === "failed" && (
+        <div className="campaign-details-status campaign-details-status-failed">
+          <p>
+            This campaign did not reach its goal by the deadline. Donations
+            are being refunded.
+          </p>
+        </div>
+      )}
+
+      {isAdmin && status === "successful" && (
+        <div className="campaign-details-admin-panel">
+          <p className="campaign-details-admin-title">Admin: Mark Payout</p>
+          <input
+            type="text"
+            placeholder="PayPal transaction ID (optional)"
+            className="campaign-details-admin-input"
+            value={transactionId}
+            onChange={(e) => setTransactionId(e.target.value)}
+          />
+          <CustomButton
+            btnType="button"
+            title="Mark Payout as Sent"
+            styles="campaign-details-admin-button"
+            handleClick={handleMarkPayoutSent}
+          />
+        </div>
+      )}
 
       <div className="campaign-details-main">
         <div className="campaign-details-left">
@@ -91,7 +153,7 @@ const CampaignDetails = () => {
               </div>
               <div>
                 <h4 className="campaign-details-creator-address">
-                  {state.ownerName}
+                  {campaign.ownerName}
                 </h4>
                 <p className="campaign-details-creator-count">
                   10 Campaigns
@@ -105,7 +167,7 @@ const CampaignDetails = () => {
 
             <div className="campaign-details-story">
               <p className="campaign-details-story-text">
-                {state.description}
+                {campaign.description}
               </p>
             </div>
           </div>
@@ -168,7 +230,7 @@ const CampaignDetails = () => {
 
       {showPayModal && (
         <FakePayPalModal
-          pId={state.pId}
+          pId={campaign.pId}
           onClose={() => setShowPayModal(false)}
           onSuccess={handleDonationSuccess}
         />

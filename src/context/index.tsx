@@ -16,6 +16,7 @@ import {
   orderBy,
   runTransaction,
   serverTimestamp,
+  updateDoc,
   type DocumentData,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
@@ -32,6 +33,8 @@ export type Campaign = {
   deadline: number;
   amountCollectedCents: number;
   image: string;
+  payoutSentAt: number | null;
+  payoutTransactionId: string | null;
 };
 
 export type Donation = {
@@ -56,10 +59,13 @@ type StateContextType = {
   userName: string | undefined;
   userEmail: string | undefined;
   userPhotoURL: string | undefined;
+  isAdmin: boolean;
   connect: () => void;
   logout: () => void;
+  markPayoutSent: (pId: string, transactionId?: string) => Promise<void>;
   createCampaign: (form: CreateCampaignForm) => Promise<Campaign>;
   getCampaigns: () => Promise<Campaign[]>;
+  getCampaign: (pId: string) => Promise<Campaign>;
   getUserCampaigns: () => Promise<Campaign[]>;
   donate: (
     pId: string,
@@ -88,8 +94,12 @@ const campaignFromDoc = (
     deadline: data.deadline,
     amountCollectedCents: data.amountCollectedCents ?? 0,
     image: data.image,
+    payoutSentAt: data.payoutSentAt?.toMillis?.() ?? null,
+    payoutTransactionId: data.payoutTransactionId ?? null,
   };
 };
+
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL;
 
 export const StateContextProvider = ({
   children,
@@ -102,6 +112,7 @@ export const StateContextProvider = ({
   const [userPhotoURL, setUserPhotoURL] = useState<string | undefined>(
     undefined,
   );
+  const isAdmin = !!userEmail && userEmail === ADMIN_EMAIL;
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user: User | null) => {
@@ -142,6 +153,11 @@ export const StateContextProvider = ({
   const getCampaigns = async () => {
     const snap = await getDocs(collection(db, "campaigns"));
     return snap.docs.map(campaignFromDoc);
+  };
+
+  const getCampaign = async (pId: string) => {
+    const snap = await getDoc(doc(db, "campaigns", pId));
+    return campaignFromDoc(snap as QueryDocumentSnapshot<DocumentData>);
   };
 
   const getUserCampaigns = async () => {
@@ -231,6 +247,15 @@ export const StateContextProvider = ({
     return balanceCents;
   };
 
+  const markPayoutSent = async (pId: string, transactionId?: string) => {
+    if (!isAdmin) throw new Error("Only the admin can mark a payout as sent");
+
+    await updateDoc(doc(db, "campaigns", pId), {
+      payoutSentAt: serverTimestamp(),
+      payoutTransactionId: transactionId?.trim() || null,
+    });
+  };
+
   return (
     <StateContext.Provider
       value={{
@@ -238,10 +263,13 @@ export const StateContextProvider = ({
         userName,
         userEmail,
         userPhotoURL,
+        isAdmin,
         connect,
         logout,
+        markPayoutSent,
         createCampaign,
         getCampaigns,
+        getCampaign,
         getUserCampaigns,
         donate,
         getDonations,

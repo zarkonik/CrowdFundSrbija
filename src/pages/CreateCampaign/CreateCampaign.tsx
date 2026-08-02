@@ -38,6 +38,13 @@ const CreateCampaign = () => {
       return;
     }
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (new Date(form.deadline) < today) {
+      alert("End date can't be in the past");
+      return;
+    }
+
     setIsLoading(true);
 
     const imageRef = storageRef(
@@ -134,6 +141,7 @@ const CreateCampaign = () => {
             placeholder="End Date"
             inputType="date"
             value={form.deadline}
+            min={new Date().toISOString().split("T")[0]}
             handleChange={(e: any) => handleFormFieldChange("deadline", e)}
           />
         </div>

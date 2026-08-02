@@ -1,8 +1,8 @@
 export const daysLeft = (deadline) => {
   const difference = deadline * 1000 - Date.now();
-  const remainingDays = difference / (1000 * 3600 * 24);
+  const remainingDays = Math.ceil(difference / (1000 * 3600 * 24));
 
-  return remainingDays.toFixed(0);
+  return Math.max(remainingDays, 0);
 };
 
 export const calculateBarPercentage = (goal, raisedAmount) => {
@@ -12,3 +12,14 @@ export const calculateBarPercentage = (goal, raisedAmount) => {
 };
 
 export const centsToDollars = (cents) => (cents / 100).toFixed(2);
+
+export const getCampaignStatus = (campaign) => {
+  if (campaign.payoutSentAt) return "paid_out";
+
+  const deadlinePassed = Date.now() >= campaign.deadline * 1000;
+  if (!deadlinePassed) return "active";
+
+  return campaign.amountCollectedCents >= campaign.targetCents
+    ? "successful"
+    : "failed";
+};

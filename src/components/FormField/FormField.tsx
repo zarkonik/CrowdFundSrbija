@@ -7,6 +7,7 @@ type FormFieldProps = {
   isTextArea: boolean;
   value: string;
   handleChange: () => void;
+  min?: string;
 };
 
 const FormField = ({
@@ -16,6 +17,7 @@ const FormField = ({
   isTextArea,
   value,
   handleChange,
+  min,
 }: FormFieldProps) => {
   return (
     <label className="form-field">
@@ -36,6 +38,7 @@ const FormField = ({
           onChange={handleChange}
           type={inputType}
           step="0.1"
+          min={min}
           placeholder={placeholder}
           className="form-field-input"
         />

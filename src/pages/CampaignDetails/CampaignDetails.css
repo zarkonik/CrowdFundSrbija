@@ -25,6 +25,66 @@
   border-radius: 12px;
 }
 
+.campaign-details-status {
+  margin-top: 20px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  font-family: var(--font-epilogue);
+  font-size: 14px;
+}
+
+.campaign-details-status-successful {
+  background: rgba(74, 205, 141, 0.12);
+  color: var(--color-accent-green);
+}
+
+.campaign-details-status-paid {
+  background: rgba(140, 109, 253, 0.12);
+  color: var(--color-accent-purple);
+}
+
+.campaign-details-status-failed {
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--color-danger);
+}
+
+.campaign-details-admin-panel {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--color-bg-card);
+  border: 1px dashed var(--color-border);
+  border-radius: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.campaign-details-admin-title {
+  font-family: var(--font-epilogue);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  width: 100%;
+}
+
+.campaign-details-admin-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 15px;
+  outline: none;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  font-family: var(--font-epilogue);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  border-radius: 10px;
+}
+
+.campaign-details-admin-button {
+  background: var(--color-accent-purple);
+}
+
 .campaign-details-progress-track {
   position: relative;
   width: 100%;
