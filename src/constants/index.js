@@ -7,6 +7,20 @@ import {
   withdraw,
 } from "../assets";
 
+export const categories = [
+  "Music",
+  "Painting",
+  "Architecture",
+  "Photography",
+  "Sculpture",
+  "Film & Video",
+  "Writing",
+  "Theater & Performing Arts",
+  "Crafts & Handmade",
+  "Personal",
+  "Other",
+];
+
 export const navlinks = [
   {
     name: "dashboard",

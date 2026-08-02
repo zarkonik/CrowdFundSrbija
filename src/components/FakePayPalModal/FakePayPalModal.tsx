@@ -13,10 +13,12 @@ type FakePayPalModalProps = {
 };
 
 const FakePayPalModal = ({ onClose, onSuccess, pId }: FakePayPalModalProps) => {
-  const { getBalance, topUpBalance, donate }: any = useStateContext();
+  const { getBalance, topUpBalance, donate, userName }: any =
+    useStateContext();
 
   const [balanceCents, setBalanceCents] = useState<number | null>(null);
   const [amount, setAmount] = useState("");
+  const [name, setName] = useState(userName ?? "");
   const [topUpAmount, setTopUpAmount] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -51,7 +53,7 @@ const FakePayPalModal = ({ onClose, onSuccess, pId }: FakePayPalModalProps) => {
     setError("");
     setIsLoading(true);
     try {
-      await donate(pId, cents);
+      await donate(pId, cents, name);
       onSuccess();
     } catch (err: any) {
       setError(err.message ?? "Payment failed");
@@ -69,6 +71,14 @@ const FakePayPalModal = ({ onClose, onSuccess, pId }: FakePayPalModalProps) => {
         <p className="paypal-modal-balance">
           Balance: ${balanceCents !== null ? centsToDollars(balanceCents) : "..."}
         </p>
+
+        <input
+          type="text"
+          placeholder="Your full name"
+          className="paypal-modal-input"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
 
         <input
           type="number"

@@ -27,6 +27,7 @@ export type Campaign = {
   ownerName: string;
   title: string;
   description: string;
+  category: string;
   targetCents: number;
   deadline: number;
   amountCollectedCents: number;
@@ -44,6 +45,7 @@ type CreateCampaignForm = {
   ownerName: string;
   title: string;
   description: string;
+  category: string;
   targetCents: number;
   deadline: number;
   image: string;
@@ -62,6 +64,7 @@ type StateContextType = {
   donate: (
     pId: string,
     amountCents: number,
+    donatorName?: string,
   ) => Promise<{ balanceCents: number }>;
   getDonations: (pId: string) => Promise<Donation[]>;
   getBalance: () => Promise<number>;
@@ -80,6 +83,7 @@ const campaignFromDoc = (
     ownerName: data.ownerName || data.ownerAddress,
     title: data.title,
     description: data.description,
+    category: data.category || "Other",
     targetCents: data.targetCents,
     deadline: data.deadline,
     amountCollectedCents: data.amountCollectedCents ?? 0,
@@ -124,6 +128,7 @@ export const StateContextProvider = ({
       ownerName: form.ownerName,
       title: form.title,
       description: form.description,
+      category: form.category,
       targetCents: form.targetCents,
       deadline: form.deadline,
       image: form.image,
@@ -165,7 +170,11 @@ export const StateContextProvider = ({
     });
   };
 
-  const donate = async (pId: string, amountCents: number) => {
+  const donate = async (
+    pId: string,
+    amountCents: number,
+    donatorName?: string,
+  ) => {
     const balanceRef = doc(db, "balances", address as string);
     const campaignRef = doc(db, "campaigns", pId);
     const donationRef = doc(collection(db, "campaigns", pId, "donations"));
@@ -193,7 +202,7 @@ export const StateContextProvider = ({
       });
       tx.set(donationRef, {
         donatorAddress: address,
-        donatorName: userName ?? address,
+        donatorName: donatorName?.trim() || userName || address,
         amountCents,
         createdAt: serverTimestamp(),
       });

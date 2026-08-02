@@ -8,6 +8,8 @@ import { storage } from "../../firebase";
 import { money } from "../../assets";
 // @ts-ignore
 import { CustomButton, FormField, Loader } from "../../components";
+// @ts-ignore
+import { categories } from "../../constants";
 import "./CreateCampaign.css";
 
 const CreateCampaign = () => {
@@ -19,6 +21,7 @@ const CreateCampaign = () => {
     name: "",
     title: "",
     description: "",
+    category: categories[0],
     target: "",
     deadline: "",
   });
@@ -48,6 +51,7 @@ const CreateCampaign = () => {
       ownerName: form.name,
       title: form.title,
       description: form.description,
+      category: form.category,
       image: imageUrl,
       targetCents: Math.round(parseFloat(form.target) * 100),
       deadline: Math.floor(new Date(form.deadline).getTime() / 1000),
@@ -89,6 +93,22 @@ const CreateCampaign = () => {
           value={form.description}
           handleChange={(e: any) => handleFormFieldChange("description", e)}
         />
+
+        <label className="create-campaign-category-field">
+          <span className="create-campaign-category-label">Category *</span>
+          <select
+            required
+            value={form.category}
+            onChange={(e) => handleFormFieldChange("category", e)}
+            className="create-campaign-category-select"
+          >
+            {categories.map((category: string) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+        </label>
 
         <div className="create-campaign-banner">
           <img

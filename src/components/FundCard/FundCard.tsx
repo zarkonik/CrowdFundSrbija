@@ -8,6 +8,7 @@ const FundCard = ({
   ownerName,
   title,
   description,
+  category,
   targetCents,
   deadline,
   amountCollectedCents,
@@ -23,7 +24,7 @@ const FundCard = ({
       <div className="fund-card-body">
         <div className="fund-card-tag">
           <img src={tagType} alt="tag" className="fund-card-tag-icon" />
-          <p className="fund-card-tag-text">Education</p>
+          <p className="fund-card-tag-text">{category}</p>
         </div>
 
         <div>
