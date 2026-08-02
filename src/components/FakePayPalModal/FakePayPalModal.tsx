@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 // @ts-ignore
-import { centsToDollars } from "../utils";
-// @ts-ignore
-import { CustomButton, Loader } from "./";
-import { useStateContext } from "../context";
+import { centsToDollars } from "../../utils";
+import CustomButton from "../CustomButton/CustomButton";
+import Loader from "../Loader/Loader";
+import { useStateContext } from "../../context";
+import "./FakePayPalModal.css";
 
 type FakePayPalModalProps = {
   onClose: () => void;
@@ -60,14 +61,12 @@ const FakePayPalModal = ({ onClose, onSuccess, pId }: FakePayPalModalProps) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+    <div className="paypal-modal-overlay">
       {isLoading && <Loader />}
-      <div className="bg-[#1c1c24] rounded-[10px] p-6 w-full max-w-[400px] flex flex-col gap-4">
-        <h4 className="font-epilogue font-semibold text-[18px] text-white text-center">
-          Pay with PayPal (test mode)
-        </h4>
+      <div className="paypal-modal">
+        <h4 className="paypal-modal-title">Pay with PayPal (test mode)</h4>
 
-        <p className="font-epilogue text-[14px] text-[#808191] text-center">
+        <p className="paypal-modal-balance">
           Balance: ${balanceCents !== null ? centsToDollars(balanceCents) : "..."}
         </p>
 
@@ -75,39 +74,35 @@ const FakePayPalModal = ({ onClose, onSuccess, pId }: FakePayPalModalProps) => {
           type="number"
           placeholder="Amount ($)"
           step="0.01"
-          className="w-full py-[10px] px-[15px] outline-none border-[1px] border-[#3a3a43] bg-transparent font-epilogue text-white text-[16px] rounded-[10px]"
+          className="paypal-modal-input"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
         />
 
-        {error && (
-          <p className="font-epilogue text-[13px] text-red-400">{error}</p>
-        )}
+        {error && <p className="paypal-modal-error">{error}</p>}
 
         <CustomButton
           btnType="button"
           title="Pay now"
-          styles="w-full bg-[#0070ba]"
+          styles="paypal-modal-pay-button"
           handleClick={handlePay}
         />
 
-        <div className="border-t border-[#3a3a43] pt-4 flex flex-col gap-2">
-          <p className="font-epilogue text-[13px] text-[#808191]">
-            Need more test funds?
-          </p>
-          <div className="flex gap-2">
+        <div className="paypal-modal-topup">
+          <p className="paypal-modal-topup-label">Need more test funds?</p>
+          <div className="paypal-modal-topup-row">
             <input
               type="number"
               placeholder="Top up ($)"
               step="0.01"
-              className="flex-1 py-[10px] px-[15px] outline-none border-[1px] border-[#3a3a43] bg-transparent font-epilogue text-white text-[14px] rounded-[10px]"
+              className="paypal-modal-topup-input"
               value={topUpAmount}
               onChange={(e) => setTopUpAmount(e.target.value)}
             />
             <CustomButton
               btnType="button"
               title="Add"
-              styles="bg-[#1dc071]"
+              styles="paypal-modal-topup-button"
               handleClick={handleTopUp}
             />
           </div>
@@ -116,7 +111,7 @@ const FakePayPalModal = ({ onClose, onSuccess, pId }: FakePayPalModalProps) => {
         <CustomButton
           btnType="button"
           title="Cancel"
-          styles="w-full bg-[#3a3a43]"
+          styles="paypal-modal-cancel-button"
           handleClick={onClose}
         />
       </div>

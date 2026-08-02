@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router-dom";
+import FundCard from "../FundCard/FundCard";
 // @ts-ignore
-import FundCard from "./FundCard";
-// @ts-ignore
-import { loader } from "../assets";
+import { loader } from "../../assets";
+import "./DisplayCampaigns.css";
 
 const DisplayCampaigns = ({ title, isLoading, campaigns }: any) => {
   const navigate = useNavigate();
@@ -13,21 +13,21 @@ const DisplayCampaigns = ({ title, isLoading, campaigns }: any) => {
 
   return (
     <div>
-      <h1 className="font-epilogue font-semibold text-[18px] text-white text-left">
+      <h1 className="display-campaigns-title">
         {title} ({campaigns.length})
       </h1>
 
-      <div className="flex flex-wrap mt-[20px] gap-[26px]">
+      <div className="display-campaigns-grid">
         {isLoading && (
           <img
             src={loader}
             alt="loader"
-            className="w-[100px] h-[100px] object-contain"
+            className="display-campaigns-loader"
           />
         )}
 
         {!isLoading && campaigns.length === 0 && (
-          <p className="font-epilogue font-semibold text-[14px] leading-[30px] text-[#818183]">
+          <p className="display-campaigns-empty">
             You have not created any campigns yet
           </p>
         )}

@@ -1,0 +1,33 @@
+.app-layout {
+  position: relative;
+  padding: 16px;
+  background: var(--color-bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: row;
+}
+
+.app-sidebar {
+  display: none;
+  margin-right: 40px;
+  position: relative;
+}
+
+@media (min-width: 640px) {
+  .app-sidebar {
+    display: flex;
+  }
+}
+
+.app-content {
+  flex: 1;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+@media (min-width: 640px) {
+  .app-content {
+    padding-right: 20px;
+  }
+}

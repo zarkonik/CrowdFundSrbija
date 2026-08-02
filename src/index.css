@@ -1,5 +1,61 @@
-@import "tailwindcss";
 @import url("https://fonts.googleapis.com/css2?family=Epilogue:wght@400;500;600;700&display=swap");
+
+:root {
+  --color-bg: #13131a;
+  --color-bg-card: #1c1c24;
+  --color-bg-card-alt: #28282e;
+  --color-border: #3a3a43;
+  --color-accent-green: #4acd8d;
+  --color-accent-purple: #8c6dfd;
+  --color-btn-green: #1dc071;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #808191;
+  --color-text-tertiary: #b2b3bd;
+  --color-placeholder: #4b5264;
+  --color-avatar-bg: #2c2f32;
+  --color-paypal-blue: #0070ba;
+  --color-danger: #f87171;
+  --font-epilogue: "Epilogue", sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body,
+h1,
+h2,
+h3,
+h4,
+p,
+ul,
+figure {
+  margin: 0;
+}
+
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button,
+input,
+textarea {
+  font-family: inherit;
+}
+
+body {
+  font-family: var(--font-epilogue);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
 
 .linear-gradient {
   background: linear-gradient(

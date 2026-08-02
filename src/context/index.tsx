@@ -1,5 +1,10 @@
 import { useContext, createContext, useEffect, useState } from "react";
-import { signInWithPopup, onAuthStateChanged, type User } from "firebase/auth";
+import {
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  type User,
+} from "firebase/auth";
 import {
   collection,
   addDoc,
@@ -19,6 +24,7 @@ import { auth, googleProvider, db } from "../firebase";
 export type Campaign = {
   pId: string;
   owner: string;
+  ownerName: string;
   title: string;
   description: string;
   targetCents: number;
@@ -29,11 +35,13 @@ export type Campaign = {
 
 export type Donation = {
   donator: string;
+  donatorName: string;
   donationCents: number;
   createdAt: number;
 };
 
 type CreateCampaignForm = {
+  ownerName: string;
   title: string;
   description: string;
   targetCents: number;
@@ -43,7 +51,11 @@ type CreateCampaignForm = {
 
 type StateContextType = {
   address: string | undefined;
+  userName: string | undefined;
+  userEmail: string | undefined;
+  userPhotoURL: string | undefined;
   connect: () => void;
+  logout: () => void;
   createCampaign: (form: CreateCampaignForm) => Promise<Campaign>;
   getCampaigns: () => Promise<Campaign[]>;
   getUserCampaigns: () => Promise<Campaign[]>;
@@ -65,6 +77,7 @@ const campaignFromDoc = (
   return {
     pId: docSnap.id,
     owner: data.ownerAddress,
+    ownerName: data.ownerName || data.ownerAddress,
     title: data.title,
     description: data.description,
     targetCents: data.targetCents,
@@ -80,10 +93,18 @@ export const StateContextProvider = ({
   children: React.ReactNode;
 }) => {
   const [address, setAddress] = useState<string | undefined>(undefined);
+  const [userName, setUserName] = useState<string | undefined>(undefined);
+  const [userEmail, setUserEmail] = useState<string | undefined>(undefined);
+  const [userPhotoURL, setUserPhotoURL] = useState<string | undefined>(
+    undefined,
+  );
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user: User | null) => {
       setAddress(user?.uid);
+      setUserName(user?.displayName ?? undefined);
+      setUserEmail(user?.email ?? undefined);
+      setUserPhotoURL(user?.photoURL ?? undefined);
     });
     return unsubscribe;
   }, []);
@@ -92,10 +113,15 @@ export const StateContextProvider = ({
     signInWithPopup(auth, googleProvider);
   };
 
+  const logout = () => {
+    signOut(auth);
+  };
+
   const createCampaign = async (form: CreateCampaignForm) => {
     const campaignsRef = collection(db, "campaigns");
     const docRef = await addDoc(campaignsRef, {
       ownerAddress: address,
+      ownerName: form.ownerName,
       title: form.title,
       description: form.description,
       targetCents: form.targetCents,
@@ -132,6 +158,7 @@ export const StateContextProvider = ({
       const data = d.data();
       return {
         donator: data.donatorAddress,
+        donatorName: data.donatorName || data.donatorAddress,
         donationCents: data.amountCents,
         createdAt: data.createdAt?.toMillis?.() ?? Date.now(),
       };
@@ -166,6 +193,7 @@ export const StateContextProvider = ({
       });
       tx.set(donationRef, {
         donatorAddress: address,
+        donatorName: userName ?? address,
         amountCents,
         createdAt: serverTimestamp(),
       });
@@ -198,7 +226,11 @@ export const StateContextProvider = ({
     <StateContext.Provider
       value={{
         address,
+        userName,
+        userEmail,
+        userPhotoURL,
         connect,
+        logout,
         createCampaign,
         getCampaigns,
         getUserCampaigns,

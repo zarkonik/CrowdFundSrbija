@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 // @ts-ignore
-import { DisplayCampaigns } from "../components";
-import { useStateContext } from "../context";
+import { DisplayCampaigns } from "../../components";
+import { useStateContext } from "../../context";
 
 const Home = () => {
   const [isLoading] = useState(false);
