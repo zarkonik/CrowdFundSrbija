@@ -291,3 +291,9 @@
   width: 100%;
   background: var(--color-accent-purple);
 }
+
+.campaign-details-fund-button-secondary {
+  width: 100%;
+  margin-top: 10px;
+  background: var(--color-border);
+}

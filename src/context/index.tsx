@@ -144,6 +144,10 @@ export const StateContextProvider = ({
       deadline: form.deadline,
       image: form.image,
       amountCollectedCents: 0,
+      settledAt: null,
+      fundingSuccessful: null,
+      payoutSentAt: null,
+      payoutTransactionId: null,
       createdAt: serverTimestamp(),
     });
     const snap = await getDoc(docRef);

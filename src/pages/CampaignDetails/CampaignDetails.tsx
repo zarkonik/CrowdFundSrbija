@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 
 import { useStateContext } from "../../context";
 // @ts-ignore
-import { CountBox, CustomButton, FakePayPalModal, Loader } from "../../components";
+import { CountBox, CustomButton, FakePayPalModal, RealPayPalModal, Loader } from "../../components";
 // @ts-ignore
 import { calculateBarPercentage, centsToDollars, daysLeft, getCampaignStatus } from "../../utils";
 // @ts-ignore
@@ -11,38 +11,41 @@ import { thirdweb } from "../../assets";
 import "./CampaignDetails.css";
 
 const CampaignDetails = () => {
+  const { id } = useParams();
   const { state } = useLocation();
   const { getDonations, getCampaign, markPayoutSent, isAdmin }: any =
     useStateContext();
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPayModal, setShowPayModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(!state);
+  const [payModal, setPayModal] = useState<"fake" | "real" | null>(null);
   const [donators, setDonators] = useState<any[]>([]);
-  const [campaign, setCampaign] = useState(state);
+  const [campaign, setCampaign] = useState<any>(state ?? null);
   const [transactionId, setTransactionId] = useState("");
 
-  const remainingDays = daysLeft(campaign.deadline);
-  const status = getCampaignStatus(campaign);
-
-  const fetchDonators = async () => {
-    setIsLoading(true);
-    const data = await getDonations(campaign.pId);
+  const fetchDonators = async (pId: string) => {
+    const data = await getDonations(pId);
     setDonators(data);
-    setIsLoading(false);
   };
 
   const refreshCampaign = async () => {
-    const fresh = await getCampaign(campaign.pId);
+    const fresh = await getCampaign(id);
     setCampaign(fresh);
   };
 
   useEffect(() => {
-    fetchDonators();
-  }, []);
+    if (!id) return;
+    (async () => {
+      setIsLoading(true);
+      const fresh = await getCampaign(id);
+      setCampaign(fresh);
+      await fetchDonators(id);
+      setIsLoading(false);
+    })();
+  }, [id]);
 
   const handleDonationSuccess = () => {
-    setShowPayModal(false);
-    fetchDonators();
+    setPayModal(null);
+    fetchDonators(id!);
     refreshCampaign();
   };
 
@@ -52,6 +55,13 @@ const CampaignDetails = () => {
     await refreshCampaign();
     setIsLoading(false);
   };
+
+  if (!campaign) {
+    return <Loader />;
+  }
+
+  const remainingDays = daysLeft(campaign.deadline);
+  const status = getCampaignStatus(campaign);
 
   return (
     <div>
@@ -219,19 +229,33 @@ const CampaignDetails = () => {
 
               <CustomButton
                 btnType="button"
-                title="Fund Campaign"
+                title="Fund with PayPal"
                 styles="campaign-details-fund-button"
-                handleClick={() => setShowPayModal(true)}
+                handleClick={() => setPayModal("real")}
+              />
+              <CustomButton
+                btnType="button"
+                title="Fund with Test Balance"
+                styles="campaign-details-fund-button-secondary"
+                handleClick={() => setPayModal("fake")}
               />
             </div>
           </div>
         </div>
       </div>
 
-      {showPayModal && (
+      {payModal === "fake" && (
         <FakePayPalModal
           pId={campaign.pId}
-          onClose={() => setShowPayModal(false)}
+          onClose={() => setPayModal(null)}
+          onSuccess={handleDonationSuccess}
+        />
+      )}
+
+      {payModal === "real" && (
+        <RealPayPalModal
+          pId={campaign.pId}
+          onClose={() => setPayModal(null)}
           onSuccess={handleDonationSuccess}
         />
       )}

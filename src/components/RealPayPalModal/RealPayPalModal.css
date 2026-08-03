@@ -1,0 +1,55 @@
+.real-paypal-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.real-paypal-modal {
+  background: var(--color-bg-card);
+  border-radius: 10px;
+  padding: 24px;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.real-paypal-modal-title {
+  font-family: var(--font-epilogue);
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--color-text-primary);
+  text-align: center;
+}
+
+.real-paypal-modal-input {
+  width: 100%;
+  padding: 10px 15px;
+  outline: none;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  font-family: var(--font-epilogue);
+  color: var(--color-text-primary);
+  font-size: 16px;
+  border-radius: 10px;
+}
+
+.real-paypal-modal-error {
+  font-family: var(--font-epilogue);
+  font-size: 13px;
+  color: var(--color-danger);
+}
+
+.real-paypal-modal-buttons {
+  min-height: 45px;
+}
+
+.real-paypal-modal-cancel-button {
+  width: 100%;
+  background: var(--color-border);
+}
