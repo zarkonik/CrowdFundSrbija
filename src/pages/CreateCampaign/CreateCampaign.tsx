@@ -124,7 +124,8 @@ const CreateCampaign = () => {
             className="create-campaign-banner-icon"
           />
           <h4 className="create-campaign-banner-text">
-            You will get 100% of the raised amount
+            You'll receive 95% of the raised amount (5% platform fee) if your
+            campaign succeeds
           </h4>
         </div>
 

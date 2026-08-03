@@ -2,7 +2,7 @@ import { Route, Routes } from "react-router-dom";
 // @ts-ignore
 import { Sidebar, Navbar } from "../components";
 // @ts-ignore
-import { CampaignDetails, CreateCampaign, Home, Profile } from "../pages";
+import { CampaignDetails, CreateCampaign, Home, Landing, Profile } from "../pages";
 import "./App.css";
 
 const App = () => {
@@ -15,7 +15,8 @@ const App = () => {
         <Navbar />
 
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Landing />} />
+          <Route path="/explore" element={<Home />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/create-campaign" element={<CreateCampaign />} />
           <Route path="campaign-details/:id" element={<CampaignDetails />} />

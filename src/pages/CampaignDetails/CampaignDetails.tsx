@@ -5,7 +5,7 @@ import { useStateContext } from "../../context";
 // @ts-ignore
 import { CountBox, CustomButton, FakePayPalModal, RealPayPalModal, Loader } from "../../components";
 // @ts-ignore
-import { calculateBarPercentage, centsToDollars, daysLeft, getCampaignStatus } from "../../utils";
+import { calculateBarPercentage, calculatePayoutCents, centsToDollars, daysLeft, getCampaignStatus } from "../../utils";
 // @ts-ignore
 import { thirdweb } from "../../assets";
 import "./CampaignDetails.css";
@@ -103,8 +103,9 @@ const CampaignDetails = () => {
       {status === "successful" && (
         <div className="campaign-details-status campaign-details-status-successful">
           <p>
-            🎉 This campaign reached its goal! The payout to the creator is
-            pending.
+            🎉 This campaign reached its goal! The payout to the creator (95%
+            of ${centsToDollars(campaign.amountCollectedCents)}, after the 5%
+            platform fee) is pending.
           </p>
         </div>
       )}
@@ -112,8 +113,9 @@ const CampaignDetails = () => {
       {status === "paid_out" && (
         <div className="campaign-details-status campaign-details-status-paid">
           <p>
-            ✅ Payout sent on{" "}
-            {new Date(campaign.payoutSentAt).toLocaleDateString()}
+            ✅ Payout of $
+            {centsToDollars(calculatePayoutCents(campaign.amountCollectedCents))}{" "}
+            sent on {new Date(campaign.payoutSentAt).toLocaleDateString()}
             {campaign.payoutTransactionId &&
               ` — Transaction ID: ${campaign.payoutTransactionId}`}
           </p>
@@ -131,7 +133,13 @@ const CampaignDetails = () => {
 
       {isAdmin && status === "successful" && (
         <div className="campaign-details-admin-panel">
-          <p className="campaign-details-admin-title">Admin: Mark Payout</p>
+          <p className="campaign-details-admin-title">
+            Admin: Mark Payout — send $
+            {centsToDollars(calculatePayoutCents(campaign.amountCollectedCents))}{" "}
+            to the creator (95% of $
+            {centsToDollars(campaign.amountCollectedCents)}, 5% platform fee
+            withheld)
+          </p>
           <input
             type="text"
             placeholder="PayPal transaction ID (optional)"

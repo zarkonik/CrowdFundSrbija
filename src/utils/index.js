@@ -13,6 +13,14 @@ export const calculateBarPercentage = (goal, raisedAmount) => {
 
 export const centsToDollars = (cents) => (cents / 100).toFixed(2);
 
+export const PLATFORM_FEE_RATE = 0.05;
+
+export const calculatePayoutCents = (amountCollectedCents) =>
+  Math.round(amountCollectedCents * (1 - PLATFORM_FEE_RATE));
+
+export const calculatePlatformFeeCents = (amountCollectedCents) =>
+  amountCollectedCents - calculatePayoutCents(amountCollectedCents);
+
 export const getCampaignStatus = (campaign) => {
   if (campaign.payoutSentAt) return "paid_out";
 
