@@ -1,15 +1,27 @@
 import { useState, useEffect } from "react";
 // @ts-ignore
-import { DisplayCampaigns } from "../../components";
+import { DisplayCampaigns, CustomButton } from "../../components";
 import { useStateContext } from "../../context";
 import "./Profile.css";
 
 const Profile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [campaigns, setCampaigns] = useState([]);
+  const [paypalMode, setPaypalModeState] = useState<"sandbox" | "live" | null>(
+    null,
+  );
+  const [isSavingMode, setIsSavingMode] = useState(false);
 
-  const { address, userName, userEmail, userPhotoURL, getUserCampaigns }: any =
-    useStateContext();
+  const {
+    address,
+    userName,
+    userEmail,
+    userPhotoURL,
+    isAdmin,
+    getUserCampaigns,
+    getPaypalMode,
+    setPaypalMode,
+  }: any = useStateContext();
 
   const fetchCampaigns = async () => {
     setIsLoading(true);
@@ -21,6 +33,18 @@ const Profile = () => {
   useEffect(() => {
     if (address) fetchCampaigns();
   }, [address]);
+
+  useEffect(() => {
+    if (isAdmin) getPaypalMode().then(setPaypalModeState);
+  }, [isAdmin]);
+
+  const handleSwitchMode = async (mode: "sandbox" | "live") => {
+    if (mode === paypalMode) return;
+    setIsSavingMode(true);
+    await setPaypalMode(mode);
+    setPaypalModeState(mode);
+    setIsSavingMode(false);
+  };
 
   return (
     <div>
@@ -42,6 +66,38 @@ const Profile = () => {
           </p>
         </div>
       </div>
+
+      {isAdmin && (
+        <div className="profile-admin-panel">
+          <p className="profile-admin-title">Admin: PayPal mode</p>
+          <p className="profile-admin-subtitle">
+            Controls which PayPal environment every donation on the site uses
+            — Sandbox (test money) or Live (real money). Current mode:{" "}
+            <strong>{paypalMode ?? "loading..."}</strong>
+          </p>
+          <div className="profile-admin-mode-buttons">
+            <CustomButton
+              btnType="button"
+              title="Sandbox"
+              styles={`profile-admin-mode-button ${
+                paypalMode === "sandbox" ? "is-active" : ""
+              }`}
+              handleClick={() => handleSwitchMode("sandbox")}
+            />
+            <CustomButton
+              btnType="button"
+              title="Live"
+              styles={`profile-admin-mode-button ${
+                paypalMode === "live" ? "is-active" : ""
+              }`}
+              handleClick={() => handleSwitchMode("live")}
+            />
+          </div>
+          {isSavingMode && (
+            <p className="profile-admin-subtitle">Saving...</p>
+          )}
+        </div>
+      )}
 
       <DisplayCampaigns
         title="My Campaigns"

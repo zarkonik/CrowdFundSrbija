@@ -18,20 +18,24 @@ type RealPayPalModalProps = {
   pId: string;
 };
 
-const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${
-  import.meta.env.VITE_PAYPAL_CLIENT_ID
-}&currency=USD`;
+const CLIENT_ID_BY_MODE: Record<"sandbox" | "live", string> = {
+  sandbox: import.meta.env.VITE_PAYPAL_SANDBOX_CLIENT_ID,
+  live: import.meta.env.VITE_PAYPAL_LIVE_CLIENT_ID,
+};
 
-const loadPayPalSdk = () =>
+const loadPayPalSdk = (mode: "sandbox" | "live") =>
   new Promise<void>((resolve, reject) => {
-    if (window.paypal) {
+    const sdkUrl = `https://www.paypal.com/sdk/js?client-id=${CLIENT_ID_BY_MODE[mode]}&currency=USD`;
+
+    // A previously-loaded SDK is tied to whichever client-id it was loaded
+    // with, so a mode switch mid-session needs a fresh script, not the
+    // cached window.paypal from the other environment.
+    if (window.paypal && document.querySelector(`script[src="${sdkUrl}"]`)) {
       resolve();
       return;
     }
 
-    const existing = document.querySelector(
-      `script[src="${PAYPAL_SDK_URL}"]`,
-    );
+    const existing = document.querySelector(`script[src="${sdkUrl}"]`);
     if (existing) {
       existing.addEventListener("load", () => resolve());
       existing.addEventListener("error", () =>
@@ -41,7 +45,7 @@ const loadPayPalSdk = () =>
     }
 
     const script = document.createElement("script");
-    script.src = PAYPAL_SDK_URL;
+    script.src = sdkUrl;
     script.onload = () => resolve();
     script.onerror = () => reject(new Error("Failed to load PayPal SDK"));
     document.body.appendChild(script);
@@ -52,12 +56,13 @@ const RealPayPalModal = ({
   onSuccess,
   pId,
 }: RealPayPalModalProps) => {
-  const { userName }: any = useStateContext();
+  const { userName, getPaypalMode }: any = useStateContext();
 
   const [amount, setAmount] = useState("");
   const [name, setName] = useState(userName ?? "");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [mode, setMode] = useState<"sandbox" | "live" | null>(null);
 
   const buttonsContainerRef = useRef<HTMLDivElement>(null);
   const amountRef = useRef(amount);
@@ -68,7 +73,12 @@ const RealPayPalModal = ({
   useEffect(() => {
     let cancelled = false;
 
-    loadPayPalSdk()
+    getPaypalMode()
+      .then((resolvedMode: "sandbox" | "live") => {
+        if (cancelled) return;
+        setMode(resolvedMode);
+        return loadPayPalSdk(resolvedMode);
+      })
       .then(() => {
         if (cancelled || !window.paypal || !buttonsContainerRef.current) {
           return;
@@ -124,6 +134,12 @@ const RealPayPalModal = ({
       {isLoading && <Loader />}
       <div className="real-paypal-modal">
         <h4 className="real-paypal-modal-title">Pay with PayPal</h4>
+
+        {mode === "sandbox" && (
+          <p className="real-paypal-modal-sandbox-notice">
+            Test mode — no real money will be charged.
+          </p>
+        )}
 
         <input
           type="text"

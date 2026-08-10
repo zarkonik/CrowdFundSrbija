@@ -1,10 +1,12 @@
-const PAYPAL_API_BASE = "https://api-m.sandbox.paypal.com";
+export const SANDBOX_API_BASE = "https://api-m.sandbox.paypal.com";
+export const LIVE_API_BASE = "https://api-m.paypal.com";
 
 type AccessTokenResponse = {
   access_token: string;
 };
 
 export const getAccessToken = async (
+  apiBase: string,
   clientId: string,
   clientSecret: string,
 ): Promise<string> => {
@@ -12,7 +14,7 @@ export const getAccessToken = async (
     "base64",
   );
 
-  const response = await fetch(`${PAYPAL_API_BASE}/v1/oauth2/token`, {
+  const response = await fetch(`${apiBase}/v1/oauth2/token`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${basicAuth}`,
@@ -30,11 +32,12 @@ export const getAccessToken = async (
 };
 
 export const createOrder = async (
+  apiBase: string,
   accessToken: string,
   amountCents: number,
   campaignId: string,
 ) => {
-  const response = await fetch(`${PAYPAL_API_BASE}/v2/checkout/orders`, {
+  const response = await fetch(`${apiBase}/v2/checkout/orders`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -61,9 +64,13 @@ export const createOrder = async (
   return response.json() as Promise<{ id: string }>;
 };
 
-export const captureOrder = async (accessToken: string, orderId: string) => {
+export const captureOrder = async (
+  apiBase: string,
+  accessToken: string,
+  orderId: string,
+) => {
   const response = await fetch(
-    `${PAYPAL_API_BASE}/v2/checkout/orders/${orderId}/capture`,
+    `${apiBase}/v2/checkout/orders/${orderId}/capture`,
     {
       method: "POST",
       headers: {
@@ -88,11 +95,12 @@ export const captureOrder = async (accessToken: string, orderId: string) => {
 };
 
 export const refundCapture = async (
+  apiBase: string,
   accessToken: string,
   captureId: string,
 ) => {
   const response = await fetch(
-    `${PAYPAL_API_BASE}/v2/payments/captures/${captureId}/refund`,
+    `${apiBase}/v2/payments/captures/${captureId}/refund`,
     {
       method: "POST",
       headers: {

@@ -4,6 +4,8 @@ import { onRequest, onCall, HttpsError } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { defineSecret, defineString } from "firebase-functions/params";
 import {
+  SANDBOX_API_BASE,
+  LIVE_API_BASE,
   getAccessToken,
   createOrder as createPayPalOrder,
   captureOrder as capturePayPalOrder,
@@ -13,8 +15,34 @@ import {
 initializeApp();
 const db = getFirestore();
 
-const paypalClientId = defineString("PAYPAL_CLIENT_ID");
-const paypalClientSecret = defineSecret("PAYPAL_CLIENT_SECRET");
+const paypalSandboxClientId = defineString("PAYPAL_CLIENT_ID");
+const paypalSandboxClientSecret = defineSecret("PAYPAL_CLIENT_SECRET");
+const paypalLiveClientId = defineString("PAYPAL_LIVE_CLIENT_ID");
+const paypalLiveClientSecret = defineSecret("PAYPAL_LIVE_CLIENT_SECRET");
+
+type PaypalEnv = "sandbox" | "live";
+
+// The platform's PayPal mode is a single Firestore doc the admin toggles
+// from the app (Profile page). Missing doc = sandbox, so nothing changes
+// for existing deployments/tests until someone explicitly flips it.
+async function getPaypalMode(): Promise<PaypalEnv> {
+  const snap = await db.doc("config/paypal").get();
+  return snap.data()?.mode === "live" ? "live" : "sandbox";
+}
+
+function credentialsFor(env: PaypalEnv) {
+  return env === "live"
+    ? {
+        apiBase: LIVE_API_BASE,
+        clientId: paypalLiveClientId.value(),
+        clientSecret: paypalLiveClientSecret.value(),
+      }
+    : {
+        apiBase: SANDBOX_API_BASE,
+        clientId: paypalSandboxClientId.value(),
+        clientSecret: paypalSandboxClientSecret.value(),
+      };
+}
 
 // Temporary health-check endpoint, confirms the Functions project deploys
 // and is reachable.
@@ -23,7 +51,7 @@ export const ping = onRequest((_req, res) => {
 });
 
 export const createOrder = onCall(
-  { secrets: [paypalClientSecret] },
+  { secrets: [paypalSandboxClientSecret, paypalLiveClientSecret] },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Must be signed in to donate");
@@ -51,18 +79,22 @@ export const createOrder = onCall(
       );
     }
 
-    const accessToken = await getAccessToken(
-      paypalClientId.value(),
-      paypalClientSecret.value(),
+    const env = await getPaypalMode();
+    const { apiBase, clientId, clientSecret } = credentialsFor(env);
+    const accessToken = await getAccessToken(apiBase, clientId, clientSecret);
+    const order = await createPayPalOrder(
+      apiBase,
+      accessToken,
+      amountCents,
+      campaignId,
     );
-    const order = await createPayPalOrder(accessToken, amountCents, campaignId);
 
     return { orderId: order.id };
   },
 );
 
 export const captureOrder = onCall(
-  { secrets: [paypalClientSecret] },
+  { secrets: [paypalSandboxClientSecret, paypalLiveClientSecret] },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Must be signed in to donate");
@@ -78,11 +110,10 @@ export const captureOrder = onCall(
       throw new HttpsError("invalid-argument", "Missing or invalid fields");
     }
 
-    const accessToken = await getAccessToken(
-      paypalClientId.value(),
-      paypalClientSecret.value(),
-    );
-    const capture = await capturePayPalOrder(accessToken, orderId);
+    const env = await getPaypalMode();
+    const { apiBase, clientId, clientSecret } = credentialsFor(env);
+    const accessToken = await getAccessToken(apiBase, clientId, clientSecret);
+    const capture = await capturePayPalOrder(apiBase, accessToken, orderId);
 
     if (capture.status !== "COMPLETED") {
       throw new HttpsError("aborted", "Payment was not completed");
@@ -107,6 +138,7 @@ export const captureOrder = onCall(
         donatorName: donatorName?.trim() || address,
         amountCents,
         isRealPayment: true,
+        paypalEnv: env,
         paypalOrderId: orderId,
         paypalCaptureId: captured.id,
         createdAt: FieldValue.serverTimestamp(),
@@ -128,10 +160,20 @@ async function settleDueCampaigns() {
 
   if (dueCampaigns.empty) return { settled: 0 };
 
-  const accessToken = await getAccessToken(
-    paypalClientId.value(),
-    paypalClientSecret.value(),
-  );
+  // Refunds must use whichever environment (sandbox/live) each donation was
+  // actually captured in, not the platform's current mode — the two can
+  // differ if the admin toggles mode between a donation and the deadline.
+  const accessTokenCache = new Map<PaypalEnv, Promise<string>>();
+  const getAccessTokenFor = (env: PaypalEnv) => {
+    if (!accessTokenCache.has(env)) {
+      const { apiBase, clientId, clientSecret } = credentialsFor(env);
+      accessTokenCache.set(
+        env,
+        getAccessToken(apiBase, clientId, clientSecret),
+      );
+    }
+    return accessTokenCache.get(env)!;
+  };
 
   for (const campaignDoc of dueCampaigns.docs) {
     const campaign = campaignDoc.data();
@@ -155,8 +197,13 @@ async function settleDueCampaigns() {
       const donation = donationDoc.data();
       if (donation.refundedAt || !donation.paypalCaptureId) continue;
 
+      const env: PaypalEnv = donation.paypalEnv === "live" ? "live" : "sandbox";
+
       try {
+        const accessToken = await getAccessTokenFor(env);
+        const { apiBase } = credentialsFor(env);
         const refund = await refundCapture(
+          apiBase,
           accessToken,
           donation.paypalCaptureId,
         );
@@ -186,9 +233,11 @@ async function settleDueCampaigns() {
 // payout panel in the app takes it from there). Failed campaigns get every
 // real PayPal donation refunded automatically.
 export const settleCampaigns = onSchedule(
-  { schedule: "every 60 minutes", secrets: [paypalClientSecret] },
+  {
+    schedule: "every 60 minutes",
+    secrets: [paypalSandboxClientSecret, paypalLiveClientSecret],
+  },
   async () => {
     await settleDueCampaigns();
   },
 );
-

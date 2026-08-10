@@ -39,6 +39,17 @@
   border-radius: 10px;
 }
 
+.real-paypal-modal-sandbox-notice {
+  margin-top: -6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(140, 109, 253, 0.12);
+  color: var(--color-accent-purple);
+  font-family: var(--font-epilogue);
+  font-size: 12px;
+  text-align: center;
+}
+
 .real-paypal-modal-error {
   font-family: var(--font-epilogue);
   font-size: 13px;

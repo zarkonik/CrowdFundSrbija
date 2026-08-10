@@ -16,6 +16,7 @@ import {
   orderBy,
   runTransaction,
   serverTimestamp,
+  setDoc,
   updateDoc,
   type DocumentData,
   type QueryDocumentSnapshot,
@@ -75,6 +76,8 @@ type StateContextType = {
   getDonations: (pId: string) => Promise<Donation[]>;
   getBalance: () => Promise<number>;
   topUpBalance: (amountCents: number) => Promise<number>;
+  getPaypalMode: () => Promise<"sandbox" | "live">;
+  setPaypalMode: (mode: "sandbox" | "live") => Promise<void>;
 };
 
 const StateContext = createContext<StateContextType | undefined>(undefined);
@@ -260,6 +263,17 @@ export const StateContextProvider = ({
     });
   };
 
+  const getPaypalMode = async (): Promise<"sandbox" | "live"> => {
+    const snap = await getDoc(doc(db, "config", "paypal"));
+    return snap.data()?.mode === "live" ? "live" : "sandbox";
+  };
+
+  const setPaypalMode = async (mode: "sandbox" | "live") => {
+    if (!isAdmin) throw new Error("Only the admin can change the PayPal mode");
+
+    await setDoc(doc(db, "config", "paypal"), { mode }, { merge: true });
+  };
+
   return (
     <StateContext.Provider
       value={{
@@ -279,6 +293,8 @@ export const StateContextProvider = ({
         getDonations,
         getBalance,
         topUpBalance,
+        getPaypalMode,
+        setPaypalMode,
       }}
     >
       {children}

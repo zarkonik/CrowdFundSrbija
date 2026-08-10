@@ -40,5 +40,13 @@ service cloud.firestore {
     match /balances/{address} {
       allow read, write: if isSignedIn() && request.auth.uid == address;
     }
+
+    // Platform-wide config, e.g. the PayPal sandbox/live mode toggle.
+    // Client IDs are public by nature (embedded in any page that loads the
+    // PayPal SDK), so a public-read doc is fine; only the admin can write.
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }
