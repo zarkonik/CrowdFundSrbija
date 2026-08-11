@@ -247,6 +247,9 @@ export const StateContextProvider = ({
       }
 
       const campaignSnap = await tx.get(campaignRef);
+      if (campaignSnap.data()?.ownerAddress === address) {
+        throw new Error("You can't donate to your own campaign");
+      }
       const currentCollected = campaignSnap.data()?.amountCollectedCents ?? 0;
 
       balanceCents = currentBalance - amountCents;

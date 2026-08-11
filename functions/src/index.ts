@@ -78,6 +78,12 @@ export const createOrder = onCall(
         "This campaign's deadline has passed",
       );
     }
+    if (campaign.ownerAddress === request.auth.uid) {
+      throw new HttpsError(
+        "permission-denied",
+        "You can't donate to your own campaign",
+      );
+    }
 
     const env = await getPaypalMode();
     const { apiBase, clientId, clientSecret } = credentialsFor(env);

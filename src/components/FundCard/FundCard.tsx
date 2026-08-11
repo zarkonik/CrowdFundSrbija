@@ -2,9 +2,11 @@
 import { tagType, thirdweb } from "../../assets";
 // @ts-ignore
 import { daysLeft, centsToDollars } from "../../utils";
+import { useStateContext } from "../../context";
 import "./FundCard.css";
 
 const FundCard = ({
+  owner,
   ownerName,
   title,
   description,
@@ -15,11 +17,17 @@ const FundCard = ({
   image,
   handleClick,
 }: any) => {
+  const { address }: any = useStateContext();
   const remainingDays = daysLeft(deadline);
+  const isOwnCampaign = !!address && owner === address;
 
   return (
     <div className="fund-card" onClick={handleClick}>
       <img src={image} alt="fund" className="fund-card-image" />
+
+      {isOwnCampaign && (
+        <span className="fund-card-own-badge">Your Campaign</span>
+      )}
 
       <div className="fund-card-body">
         <div className="fund-card-tag">

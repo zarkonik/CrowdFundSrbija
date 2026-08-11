@@ -13,7 +13,7 @@ import "./CampaignDetails.css";
 const CampaignDetails = () => {
   const { id } = useParams();
   const { state } = useLocation();
-  const { getDonations, getCampaign, markPayoutSent, isAdmin }: any =
+  const { address, getDonations, getCampaign, markPayoutSent, isAdmin }: any =
     useStateContext();
 
   const [isLoading, setIsLoading] = useState(!state);
@@ -62,6 +62,7 @@ const CampaignDetails = () => {
 
   const remainingDays = daysLeft(campaign.deadline);
   const status = getCampaignStatus(campaign);
+  const isOwnCampaign = !!address && campaign.owner === address;
 
   return (
     <div>
@@ -235,18 +236,27 @@ const CampaignDetails = () => {
                 </p>
               </div>
 
-              <CustomButton
-                btnType="button"
-                title="Fund with PayPal or Card"
-                styles="campaign-details-fund-button"
-                handleClick={() => setPayModal("real")}
-              />
-              <CustomButton
-                btnType="button"
-                title="Fund with Test Balance"
-                styles="campaign-details-fund-button-secondary"
-                handleClick={() => setPayModal("fake")}
-              />
+              {isOwnCampaign ? (
+                <p className="campaign-details-own-notice">
+                  This is your campaign — you can't donate to your own
+                  campaign.
+                </p>
+              ) : (
+                <>
+                  <CustomButton
+                    btnType="button"
+                    title="Fund with PayPal or Card"
+                    styles="campaign-details-fund-button"
+                    handleClick={() => setPayModal("real")}
+                  />
+                  <CustomButton
+                    btnType="button"
+                    title="Fund with Test Balance"
+                    styles="campaign-details-fund-button-secondary"
+                    handleClick={() => setPayModal("fake")}
+                  />
+                </>
+              )}
             </div>
           </div>
         </div>
