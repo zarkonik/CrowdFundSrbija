@@ -23,6 +23,9 @@ const CLIENT_ID_BY_MODE: Record<"sandbox" | "live", string> = {
   live: import.meta.env.VITE_PAYPAL_LIVE_CLIENT_ID,
 };
 
+const findScriptByExactSrc = (src: string) =>
+  Array.from(document.scripts).find((s) => s.src === src);
+
 const loadPayPalSdk = (mode: "sandbox" | "live") =>
   new Promise<void>((resolve, reject) => {
     // enable-funding=card guarantees the guest debit/credit card button
@@ -31,13 +34,16 @@ const loadPayPalSdk = (mode: "sandbox" | "live") =>
 
     // A previously-loaded SDK is tied to whichever client-id it was loaded
     // with, so a mode switch mid-session needs a fresh script, not the
-    // cached window.paypal from the other environment.
-    if (window.paypal && document.querySelector(`script[src="${sdkUrl}"]`)) {
+    // cached window.paypal from the other environment. Compared via plain
+    // .src equality (not a CSS selector) since the client-id can contain
+    // characters that aren't safe to interpolate into selector syntax.
+    const existing = findScriptByExactSrc(sdkUrl);
+
+    if (window.paypal && existing) {
       resolve();
       return;
     }
 
-    const existing = document.querySelector(`script[src="${sdkUrl}"]`);
     if (existing) {
       existing.addEventListener("load", () => resolve());
       existing.addEventListener("error", () =>
