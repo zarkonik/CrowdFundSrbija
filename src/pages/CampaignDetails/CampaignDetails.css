@@ -172,9 +172,17 @@
 }
 
 .campaign-details-creator-avatar-image {
-  width: 60%;
-  height: 60%;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.campaign-details-creator-avatar-fallback {
+  font-family: var(--font-epilogue);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-text-primary);
 }
 
 .campaign-details-creator-address {

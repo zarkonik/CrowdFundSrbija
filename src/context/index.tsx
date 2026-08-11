@@ -12,6 +12,9 @@ import {
 import {
   collection,
   addDoc,
+  arrayUnion,
+  arrayRemove,
+  deleteDoc,
   getDoc,
   getDocs,
   doc,
@@ -26,12 +29,14 @@ import {
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
-import { auth, googleProvider, db, functions } from "../firebase";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { auth, googleProvider, db, functions, storage } from "../firebase";
 
 export type Campaign = {
   pId: string;
   owner: string;
   ownerName: string;
+  ownerPhotoURL: string | null;
   title: string;
   description: string;
   category: string;
@@ -51,6 +56,18 @@ export type Donation = {
   createdAt: number;
   isRealPayment: boolean;
   refundedAt: number | null;
+};
+
+export type Comment = {
+  id: string;
+  authorUid: string;
+  authorName: string;
+  authorPhotoURL: string | null;
+  text: string;
+  createdAt: number;
+  editedAt: number | null;
+  parentId: string | null;
+  likedBy: string[];
 };
 
 type CreateCampaignForm = {
@@ -88,6 +105,24 @@ type StateContextType = {
   signInWithEmail: (email: string, password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   logout: () => void;
+  updateProfilePhoto: (file: File) => Promise<string>;
+  postComment: (
+    pId: string,
+    text: string,
+    parentId?: string | null,
+  ) => Promise<void>;
+  getComments: (pId: string) => Promise<Comment[]>;
+  updateComment: (
+    pId: string,
+    commentId: string,
+    text: string,
+  ) => Promise<void>;
+  deleteComment: (pId: string, commentId: string) => Promise<void>;
+  toggleCommentLike: (
+    pId: string,
+    commentId: string,
+    like: boolean,
+  ) => Promise<void>;
   markPayoutSent: (pId: string, transactionId?: string) => Promise<void>;
   createCampaign: (form: CreateCampaignForm) => Promise<Campaign>;
   updateCampaign: (pId: string, updates: EditCampaignForm) => Promise<void>;
@@ -118,6 +153,7 @@ const campaignFromDoc = (
     pId: docSnap.id,
     owner: data.ownerAddress,
     ownerName: data.ownerName || data.ownerAddress,
+    ownerPhotoURL: data.ownerPhotoURL ?? null,
     title: data.title,
     description: data.description,
     category: data.category || "Other",
@@ -191,11 +227,30 @@ export const StateContextProvider = ({
     signOut(auth);
   };
 
+  const updateProfilePhoto = async (file: File) => {
+    if (!auth.currentUser) throw new Error("Must be signed in");
+
+    const photoRef = storageRef(
+      storage,
+      `profile-images/${auth.currentUser.uid}-${Date.now()}-${file.name}`,
+    );
+    await uploadBytes(photoRef, file);
+    const photoURL = await getDownloadURL(photoRef);
+
+    await updateProfile(auth.currentUser, { photoURL });
+    // Same as displayName in signUpWithEmail — updateProfile doesn't
+    // re-fire onAuthStateChanged, so push it into local state ourselves.
+    setUserPhotoURL(photoURL);
+
+    return photoURL;
+  };
+
   const createCampaign = async (form: CreateCampaignForm) => {
     const campaignsRef = collection(db, "campaigns");
     const docRef = await addDoc(campaignsRef, {
       ownerAddress: address,
       ownerName: form.ownerName,
+      ownerPhotoURL: userPhotoURL || null,
       title: form.title,
       description: form.description,
       category: form.category,
@@ -235,6 +290,78 @@ export const StateContextProvider = ({
   const getDeletedCampaigns = async () => {
     const snap = await getDocs(collection(db, "campaigns"));
     return snap.docs.map(campaignFromDoc).filter((c) => !!c.deletedAt);
+  };
+
+  const postComment = async (
+    pId: string,
+    text: string,
+    parentId: string | null = null,
+  ) => {
+    if (!address) throw new Error("Must be signed in to comment");
+    const trimmed = text.trim();
+    if (!trimmed) throw new Error("Comment can't be empty");
+
+    await addDoc(collection(db, "campaigns", pId, "comments"), {
+      authorUid: address,
+      authorName: userName || "Anonymous",
+      authorPhotoURL: userPhotoURL || null,
+      text: trimmed,
+      parentId,
+      likedBy: [],
+      createdAt: serverTimestamp(),
+    });
+  };
+
+  const getComments = async (pId: string) => {
+    const q = query(
+      collection(db, "campaigns", pId, "comments"),
+      orderBy("createdAt", "asc"),
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        authorUid: data.authorUid,
+        authorName: data.authorName || "Anonymous",
+        authorPhotoURL: data.authorPhotoURL ?? null,
+        text: data.text,
+        createdAt: data.createdAt?.toMillis?.() ?? Date.now(),
+        editedAt: data.editedAt?.toMillis?.() ?? null,
+        parentId: data.parentId ?? null,
+        likedBy: data.likedBy ?? [],
+      };
+    });
+  };
+
+  const updateComment = async (
+    pId: string,
+    commentId: string,
+    text: string,
+  ) => {
+    const trimmed = text.trim();
+    if (!trimmed) throw new Error("Comment can't be empty");
+
+    await updateDoc(doc(db, "campaigns", pId, "comments", commentId), {
+      text: trimmed,
+      editedAt: serverTimestamp(),
+    });
+  };
+
+  const deleteComment = async (pId: string, commentId: string) => {
+    await deleteDoc(doc(db, "campaigns", pId, "comments", commentId));
+  };
+
+  const toggleCommentLike = async (
+    pId: string,
+    commentId: string,
+    like: boolean,
+  ) => {
+    if (!address) throw new Error("Must be signed in to like a comment");
+
+    await updateDoc(doc(db, "campaigns", pId, "comments", commentId), {
+      likedBy: like ? arrayUnion(address) : arrayRemove(address),
+    });
   };
 
   const getDonations = async (pId: string) => {
@@ -367,6 +494,7 @@ export const StateContextProvider = ({
         signInWithEmail,
         resetPassword,
         logout,
+        updateProfilePhoto,
         markPayoutSent,
         createCampaign,
         updateCampaign,
@@ -375,6 +503,11 @@ export const StateContextProvider = ({
         getCampaign,
         getUserCampaigns,
         getDeletedCampaigns,
+        postComment,
+        getComments,
+        updateComment,
+        deleteComment,
+        toggleCommentLike,
         donate,
         getDonations,
         getBalance,

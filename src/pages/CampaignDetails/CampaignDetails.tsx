@@ -3,11 +3,9 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { useStateContext } from "../../context";
 // @ts-ignore
-import { CountBox, CustomButton, FakePayPalModal, RealPayPalModal, EditCampaignModal, Loader } from "../../components";
+import { CountBox, CustomButton, FakePayPalModal, RealPayPalModal, EditCampaignModal, CommentSection, Loader } from "../../components";
 // @ts-ignore
 import { calculateBarPercentage, calculatePayoutCents, centsToDollars, daysLeft, getCampaignStatus } from "../../utils";
-// @ts-ignore
-import { thirdweb } from "../../assets";
 import "./CampaignDetails.css";
 
 const CampaignDetails = () => {
@@ -214,11 +212,17 @@ const CampaignDetails = () => {
 
             <div className="campaign-details-creator">
               <div className="campaign-details-creator-avatar">
-                <img
-                  src={thirdweb}
-                  alt="user"
-                  className="campaign-details-creator-avatar-image"
-                />
+                {campaign.ownerPhotoURL ? (
+                  <img
+                    src={campaign.ownerPhotoURL}
+                    alt={campaign.ownerName}
+                    className="campaign-details-creator-avatar-image"
+                  />
+                ) : (
+                  <span className="campaign-details-creator-avatar-fallback">
+                    {(campaign.ownerName ?? "?").charAt(0).toUpperCase()}
+                  </span>
+                )}
               </div>
               <div>
                 <h4 className="campaign-details-creator-address">
@@ -272,6 +276,13 @@ const CampaignDetails = () => {
               )}
             </div>
           </div>
+
+          <CommentSection
+            pId={campaign.pId}
+            ownerUid={campaign.owner}
+            ownerName={campaign.ownerName}
+            ownerPhotoURL={campaign.ownerPhotoURL}
+          />
         </div>
 
         <div className="campaign-details-fund">

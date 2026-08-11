@@ -36,6 +36,45 @@ service cloud.firestore {
           && request.resource.data.donatorAddress == request.auth.uid;
         allow update, delete: if false;
       }
+
+      match /comments/{commentId} {
+        function oldLikes() {
+          return "likedBy" in resource.data ? resource.data.likedBy : [];
+        }
+
+        // A like-toggle may only ever add or remove the caller's own uid
+        // from likedBy — never touch anyone else's entry.
+        function isOwnLikeToggle() {
+          return affectedKeys().hasOnly(["likedBy"])
+            && request.resource.data.likedBy.toSet().difference(oldLikes().toSet()).hasOnly([request.auth.uid])
+            && oldLikes().toSet().difference(request.resource.data.likedBy.toSet()).hasOnly([request.auth.uid]);
+        }
+
+        allow read: if true;
+        allow create: if isSignedIn()
+          && request.resource.data.authorUid == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1000
+          && (request.resource.data.parentId == null || request.resource.data.parentId is string)
+          && request.resource.data.likedBy == [];
+
+        // Either the original author edits their own text, or any signed
+        // in user toggles their own like — everything else (author
+        // identity, createdAt, parentId) is immutable.
+        allow update: if isSignedIn()
+          && (
+            (resource.data.authorUid == request.auth.uid
+              && affectedKeys().hasOnly(["text", "editedAt"])
+              && request.resource.data.text is string
+              && request.resource.data.text.size() > 0
+              && request.resource.data.text.size() <= 1000)
+            || isOwnLikeToggle()
+          );
+
+        allow delete: if isAdmin()
+          || (isSignedIn() && resource.data.authorUid == request.auth.uid);
+      }
     }
 
     match /balances/{address} {

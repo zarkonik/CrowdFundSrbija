@@ -12,6 +12,19 @@ service firebase.storage {
       allow delete: if false;
     }
 
+    // Profile photos are namespaced by uid in the filename (enforced
+    // below), so a user can only ever overwrite their own.
+    match /profile-images/{fileName} {
+      allow read: if true;
+
+      allow write: if request.auth != null
+        && fileName.matches(request.auth.uid + "-.*")
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches("image/.*");
+
+      allow delete: if false;
+    }
+
     // Everything else is denied by default (no matching rule = no access).
   }
 }

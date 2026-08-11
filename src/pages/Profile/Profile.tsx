@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 // @ts-ignore
 import { DisplayCampaigns, CustomButton } from "../../components";
 import { useStateContext } from "../../context";
@@ -9,10 +9,13 @@ const Profile = () => {
   const [campaigns, setCampaigns] = useState([]);
   const [deletedCampaigns, setDeletedCampaigns] = useState([]);
   const [isLoadingDeleted, setIsLoadingDeleted] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState("");
   const [paypalMode, setPaypalModeState] = useState<"sandbox" | "live" | null>(
     null,
   );
   const [isSavingMode, setIsSavingMode] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const {
     address,
@@ -24,7 +27,24 @@ const Profile = () => {
     getDeletedCampaigns,
     getPaypalMode,
     setPaypalMode,
+    updateProfilePhoto,
   }: any = useStateContext();
+
+  const handlePhotoChange = async (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setPhotoError("");
+    setIsUploadingPhoto(true);
+    try {
+      await updateProfilePhoto(file);
+    } catch (err: any) {
+      setPhotoError(err?.message ?? "Could not upload photo. Please try again.");
+    } finally {
+      setIsUploadingPhoto(false);
+      e.target.value = "";
+    }
+  };
 
   const fetchCampaigns = async () => {
     setIsLoading(true);
@@ -62,13 +82,28 @@ const Profile = () => {
   return (
     <div>
       <div className="profile-info">
-        {userPhotoURL ? (
-          <img src={userPhotoURL} alt="avatar" className="profile-avatar" />
-        ) : (
-          <div className="profile-avatar-fallback">
-            {(userName ?? "?").charAt(0).toUpperCase()}
+        <div
+          className="profile-avatar-wrap"
+          onClick={() => photoInputRef.current?.click()}
+        >
+          {userPhotoURL ? (
+            <img src={userPhotoURL} alt="avatar" className="profile-avatar" />
+          ) : (
+            <div className="profile-avatar-fallback">
+              {(userName ?? "?").charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div className="profile-avatar-overlay">
+            {isUploadingPhoto ? "Uploading..." : "Change"}
           </div>
-        )}
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            className="profile-avatar-input"
+            onChange={handlePhotoChange}
+          />
+        </div>
 
         <div>
           <h2 className="profile-name">{userName ?? "Anonymous"}</h2>
@@ -77,6 +112,7 @@ const Profile = () => {
             {campaigns.length} campaign{campaigns.length === 1 ? "" : "s"}{" "}
             created
           </p>
+          {photoError && <p className="profile-photo-error">{photoError}</p>}
         </div>
       </div>
 
