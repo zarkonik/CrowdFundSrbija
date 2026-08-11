@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 // @ts-ignore
 import { useStateContext } from "../../context";
 // @ts-ignore
-import { CustomButton } from "../";
+import { CustomButton, AuthModal } from "../";
 // @ts-ignore
 import { logo, menu, search } from "../../assets";
 // @ts-ignore
@@ -14,7 +14,8 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [isActive, setIsActive] = useState("dashboard");
   const [toggleDrawer, setToggleDrawer] = useState(false);
-  const { connect, address }: any = useStateContext();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const { address }: any = useStateContext();
 
   return (
     <div className="navbar">
@@ -33,11 +34,11 @@ const Navbar = () => {
       <div className="navbar-desktop">
         <CustomButton
           btnType="button"
-          title={address ? "Create a campaign" : "Sign up with Google"}
+          title={address ? "Create a campaign" : "Sign Up / Log In"}
           styles={address ? "navbar-btn-create" : "navbar-btn-connect"}
           handleClick={() => {
             if (address) navigate("create-campaign");
-            else connect();
+            else setShowAuthModal(true);
           }}
         />
 
@@ -106,14 +107,14 @@ const Navbar = () => {
           <div className="navbar-drawer-button">
             <CustomButton
               btnType="button"
-              title={address ? "Create a campaign" : "Sign up with Google"}
+              title={address ? "Create a campaign" : "Sign Up / Log In"}
               styles={`navbar-drawer-button-full ${
                 address ? "navbar-btn-create" : "navbar-btn-connect"
               }`}
               handleClick={() => {
                 setToggleDrawer(false);
                 if (address) navigate("create-campaign");
-                else connect();
+                else setShowAuthModal(true);
               }}
             />
           </div>
@@ -133,6 +134,10 @@ const Navbar = () => {
           )}
         </div>
       </div>
+
+      {showAuthModal && (
+        <AuthModal onClose={() => setShowAuthModal(false)} />
+      )}
     </div>
   );
 };

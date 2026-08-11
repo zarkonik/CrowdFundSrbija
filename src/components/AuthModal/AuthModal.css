@@ -1,0 +1,108 @@
+.auth-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.auth-modal {
+  background: var(--color-bg-card);
+  border-radius: 14px;
+  padding: 28px;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-modal-tabs {
+  display: flex;
+  background: var(--color-bg);
+  border-radius: 10px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.auth-modal-tab {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-family: var(--font-epilogue);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.auth-modal-tab.is-active {
+  background: var(--color-accent-purple);
+  color: var(--color-text-primary);
+}
+
+.auth-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-modal-input {
+  width: 100%;
+  padding: 12px 15px;
+  outline: none;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  font-family: var(--font-epilogue);
+  color: var(--color-text-primary);
+  font-size: 15px;
+  border-radius: 10px;
+}
+
+.auth-modal-input::placeholder {
+  color: var(--color-placeholder);
+}
+
+.auth-modal-error {
+  font-family: var(--font-epilogue);
+  font-size: 13px;
+  color: var(--color-danger);
+}
+
+.auth-modal-submit-button {
+  width: 100%;
+  background: var(--color-accent-purple);
+}
+
+.auth-modal-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text-secondary);
+  font-family: var(--font-epilogue);
+  font-size: 12px;
+}
+
+.auth-modal-divider::before,
+.auth-modal-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.auth-modal-google-button {
+  width: 100%;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+}
+
+.auth-modal-cancel-button {
+  width: 100%;
+  background: transparent;
+  color: var(--color-text-secondary);
+}

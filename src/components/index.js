@@ -7,4 +7,5 @@ export { default as DisplayCampaigns } from "./DisplayCampaigns/DisplayCampaigns
 export { default as FundCard } from "./FundCard/FundCard";
 export { default as CountBox } from "./CountBox/CountBox";
 export { default as FakePayPalModal } from "./FakePayPalModal/FakePayPalModal";
+export { default as AuthModal } from "./AuthModal/AuthModal";
 export { default as RealPayPalModal } from "./RealPayPalModal/RealPayPalModal";

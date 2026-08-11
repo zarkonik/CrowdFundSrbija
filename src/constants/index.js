@@ -1,11 +1,4 @@
-import {
-  createCampaign,
-  dashboard,
-  logout,
-  payment,
-  profile,
-  withdraw,
-} from "../assets";
+import { createCampaign, dashboard, logout, profile } from "../assets";
 
 export const categories = [
   "Music",
@@ -31,18 +24,6 @@ export const navlinks = [
     name: "campaign",
     imgUrl: createCampaign,
     link: "/create-campaign",
-  },
-  {
-    name: "payment",
-    imgUrl: payment,
-    link: "/",
-    disabled: true,
-  },
-  {
-    name: "withdraw",
-    imgUrl: withdraw,
-    link: "/",
-    disabled: true,
   },
   {
     name: "profile",

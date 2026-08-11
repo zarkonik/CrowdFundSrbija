@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStateContext } from "../../context";
 // @ts-ignore
-import { CustomButton } from "../../components";
+import { CustomButton, AuthModal } from "../../components";
 // @ts-ignore
 import { categories } from "../../constants";
 import "./Landing.css";
@@ -59,11 +60,12 @@ const steps = [
 
 const Landing = () => {
   const navigate = useNavigate();
-  const { address, connect }: any = useStateContext();
+  const { address }: any = useStateContext();
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const handleStartCampaign = () => {
     if (address) navigate("/create-campaign");
-    else connect();
+    else setShowAuthModal(true);
   };
 
   return (
@@ -180,6 +182,10 @@ const Landing = () => {
           handleClick={handleStartCampaign}
         />
       </section>
+
+      {showAuthModal && (
+        <AuthModal onClose={() => setShowAuthModal(false)} />
+      )}
     </div>
   );
 };

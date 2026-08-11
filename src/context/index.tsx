@@ -3,6 +3,9 @@ import {
   signInWithPopup,
   signOut,
   onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
   type User,
 } from "firebase/auth";
 import {
@@ -62,6 +65,12 @@ type StateContextType = {
   userPhotoURL: string | undefined;
   isAdmin: boolean;
   connect: () => void;
+  signUpWithEmail: (
+    email: string,
+    password: string,
+    displayName: string,
+  ) => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
   logout: () => void;
   markPayoutSent: (pId: string, transactionId?: string) => Promise<void>;
   createCampaign: (form: CreateCampaignForm) => Promise<Campaign>;
@@ -129,6 +138,29 @@ export const StateContextProvider = ({
 
   const connect = () => {
     signInWithPopup(auth, googleProvider);
+  };
+
+  const signUpWithEmail = async (
+    email: string,
+    password: string,
+    displayName: string,
+  ) => {
+    const credential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password,
+    );
+    if (displayName.trim()) {
+      await updateProfile(credential.user, { displayName: displayName.trim() });
+      // updateProfile mutates the current user in place without re-firing
+      // onAuthStateChanged, so the name wouldn't show up until next reload
+      // unless we push it into local state ourselves.
+      setUserName(displayName.trim());
+    }
+  };
+
+  const signInWithEmail = async (email: string, password: string) => {
+    await signInWithEmailAndPassword(auth, email, password);
   };
 
   const logout = () => {
@@ -283,6 +315,8 @@ export const StateContextProvider = ({
         userPhotoURL,
         isAdmin,
         connect,
+        signUpWithEmail,
+        signInWithEmail,
         logout,
         markPayoutSent,
         createCampaign,
