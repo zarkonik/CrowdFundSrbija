@@ -15,7 +15,7 @@ const Navbar = () => {
   const [isActive, setIsActive] = useState("dashboard");
   const [toggleDrawer, setToggleDrawer] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const { address }: any = useStateContext();
+  const { address, logout }: any = useStateContext();
 
   return (
     <div className="navbar">
@@ -80,9 +80,17 @@ const Navbar = () => {
                 className={`navbar-drawer-link ${
                   isActive === link.name ? "is-active" : ""
                 }`}
-                onClick={() => {
-                  setIsActive(link.name);
+                onClick={async () => {
                   setToggleDrawer(false);
+
+                  if (link.name === "logout") {
+                    await logout();
+                    setIsActive("dashboard");
+                    navigate("/");
+                    return;
+                  }
+
+                  setIsActive(link.name);
                   navigate(link.link);
                 }}
               >

@@ -62,11 +62,11 @@ const Sidebar = () => {
               key={link.name}
               {...link}
               isActive={isActive}
-              handleClick={() => {
+              handleClick={async () => {
                 if (link.disabled) return;
 
                 if (link.name === "logout") {
-                  logout();
+                  await logout();
                   setIsActive("dashboard");
                   navigate("/");
                   return;

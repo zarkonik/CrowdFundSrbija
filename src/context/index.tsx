@@ -104,7 +104,7 @@ type StateContextType = {
   ) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateProfilePhoto: (file: File) => Promise<string>;
   postComment: (
     pId: string,
@@ -223,8 +223,8 @@ export const StateContextProvider = ({
     await sendPasswordResetEmail(auth, email);
   };
 
-  const logout = () => {
-    signOut(auth);
+  const logout = async () => {
+    await signOut(auth);
   };
 
   const updateProfilePhoto = async (file: File) => {
