@@ -127,7 +127,8 @@ const RealPayPalModal = ({
 
         setIsLoading(false);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
+        console.error("Failed to load PayPal:", err);
         setError("Could not load PayPal. Please try again later.");
         setIsLoading(false);
       });
