@@ -20,14 +20,15 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.resource.data.ownerAddress == request.auth.uid;
 
-      // Only the admin can mark a payout as sent. Any other authenticated
-      // user may only ever touch amountCollectedCents (the donation-total
-      // counter updated as part of the donate() transaction).
+      // The admin can edit any field (payouts, or full campaign edits).
+      // Any other authenticated user may only ever touch
+      // amountCollectedCents (the donation-total counter updated as part
+      // of the donate() transaction).
       allow update: if
-        (isAdmin() && affectedKeys().hasOnly(["payoutSentAt", "payoutTransactionId"]))
+        isAdmin()
         || (isSignedIn() && affectedKeys().hasOnly(["amountCollectedCents"]));
 
-      allow delete: if false;
+      allow delete: if isAdmin();
 
       match /donations/{donationId} {
         allow read: if true;

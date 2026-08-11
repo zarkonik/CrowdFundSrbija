@@ -36,6 +36,11 @@
   }
 }
 
+.form-field-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .form-field-counter {
   align-self: flex-end;
   margin-top: 6px;

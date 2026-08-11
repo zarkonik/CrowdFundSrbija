@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { useStateContext } from "../../context";
 // @ts-ignore
-import { CountBox, CustomButton, FakePayPalModal, RealPayPalModal, Loader } from "../../components";
+import { CountBox, CustomButton, FakePayPalModal, RealPayPalModal, EditCampaignModal, Loader } from "../../components";
 // @ts-ignore
 import { calculateBarPercentage, calculatePayoutCents, centsToDollars, daysLeft, getCampaignStatus } from "../../utils";
 // @ts-ignore
@@ -13,11 +13,19 @@ import "./CampaignDetails.css";
 const CampaignDetails = () => {
   const { id } = useParams();
   const { state } = useLocation();
-  const { address, getDonations, getCampaign, markPayoutSent, isAdmin }: any =
-    useStateContext();
+  const navigate = useNavigate();
+  const {
+    address,
+    getDonations,
+    getCampaign,
+    markPayoutSent,
+    deleteCampaign,
+    isAdmin,
+  }: any = useStateContext();
 
   const [isLoading, setIsLoading] = useState(!state);
   const [payModal, setPayModal] = useState<"fake" | "real" | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [donators, setDonators] = useState<any[]>([]);
   const [campaign, setCampaign] = useState<any>(state ?? null);
   const [transactionId, setTransactionId] = useState("");
@@ -56,6 +64,18 @@ const CampaignDetails = () => {
     setIsLoading(false);
   };
 
+  const handleDeleteCampaign = async () => {
+    const confirmed = window.confirm(
+      "Delete this campaign? Any unrefunded real donations will be refunded automatically first. The campaign will be hidden from listings but its record is kept.",
+    );
+    if (!confirmed) return;
+
+    setIsLoading(true);
+    await deleteCampaign(campaign.pId);
+    setIsLoading(false);
+    navigate("/explore");
+  };
+
   if (!campaign) {
     return <Loader />;
   }
@@ -63,6 +83,7 @@ const CampaignDetails = () => {
   const remainingDays = daysLeft(campaign.deadline);
   const status = getCampaignStatus(campaign);
   const isOwnCampaign = !!address && campaign.owner === address;
+  const isDeleted = !!campaign.deletedAt;
 
   return (
     <div>
@@ -129,6 +150,35 @@ const CampaignDetails = () => {
             This campaign did not reach its goal by the deadline. Donations
             are being refunded.
           </p>
+        </div>
+      )}
+
+      {isDeleted && (
+        <div className="campaign-details-status campaign-details-status-removed">
+          <p>
+            🗑️ This campaign was removed by the admin on{" "}
+            {new Date(campaign.deletedAt).toLocaleDateString()}.
+            {campaign.fundingSuccessful === false &&
+              " Any donations were refunded."}
+          </p>
+        </div>
+      )}
+
+      {isAdmin && !isDeleted && (
+        <div className="campaign-details-admin-panel">
+          <p className="campaign-details-admin-title">Admin: Manage Campaign</p>
+          <CustomButton
+            btnType="button"
+            title="Edit Campaign"
+            styles="campaign-details-admin-button"
+            handleClick={() => setShowEditModal(true)}
+          />
+          <CustomButton
+            btnType="button"
+            title="Delete Campaign"
+            styles="campaign-details-admin-delete-button"
+            handleClick={handleDeleteCampaign}
+          />
         </div>
       )}
 
@@ -206,6 +256,12 @@ const CampaignDetails = () => {
                     </p>
                     <p className="campaign-details-donator-amount">
                       ${centsToDollars(item.donationCents)}
+                      {item.refundedAt && (
+                        <span className="campaign-details-donator-refunded">
+                          {" "}
+                          (refunded)
+                        </span>
+                      )}
                     </p>
                   </div>
                 ))
@@ -236,7 +292,12 @@ const CampaignDetails = () => {
                 </p>
               </div>
 
-              {isOwnCampaign ? (
+              {isDeleted ? (
+                <p className="campaign-details-own-notice">
+                  This campaign has been removed and can no longer be
+                  funded.
+                </p>
+              ) : isOwnCampaign ? (
                 <p className="campaign-details-own-notice">
                   This is your campaign — you can't donate to your own
                   campaign.
@@ -275,6 +336,15 @@ const CampaignDetails = () => {
           pId={campaign.pId}
           onClose={() => setPayModal(null)}
           onSuccess={handleDonationSuccess}
+        />
+      )}
+
+      {showEditModal && (
+        <EditCampaignModal
+          campaign={campaign}
+          hasDonations={donators.length > 0}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={refreshCampaign}
         />
       )}
     </div>

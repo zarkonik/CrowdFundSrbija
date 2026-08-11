@@ -25,7 +25,8 @@ import {
   type DocumentData,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
-import { auth, googleProvider, db } from "../firebase";
+import { httpsCallable } from "firebase/functions";
+import { auth, googleProvider, db, functions } from "../firebase";
 
 export type Campaign = {
   pId: string;
@@ -40,6 +41,7 @@ export type Campaign = {
   image: string;
   payoutSentAt: number | null;
   payoutTransactionId: string | null;
+  deletedAt: number | null;
 };
 
 export type Donation = {
@@ -47,6 +49,8 @@ export type Donation = {
   donatorName: string;
   donationCents: number;
   createdAt: number;
+  isRealPayment: boolean;
+  refundedAt: number | null;
 };
 
 type CreateCampaignForm = {
@@ -58,6 +62,16 @@ type CreateCampaignForm = {
   deadline: number;
   image: string;
 };
+
+type EditCampaignForm = Partial<{
+  ownerName: string;
+  title: string;
+  description: string;
+  category: string;
+  targetCents: number;
+  deadline: number;
+  image: string;
+}>;
 
 type StateContextType = {
   address: string | undefined;
@@ -76,9 +90,12 @@ type StateContextType = {
   logout: () => void;
   markPayoutSent: (pId: string, transactionId?: string) => Promise<void>;
   createCampaign: (form: CreateCampaignForm) => Promise<Campaign>;
+  updateCampaign: (pId: string, updates: EditCampaignForm) => Promise<void>;
+  deleteCampaign: (pId: string) => Promise<{ refunded: boolean }>;
   getCampaigns: () => Promise<Campaign[]>;
   getCampaign: (pId: string) => Promise<Campaign>;
   getUserCampaigns: () => Promise<Campaign[]>;
+  getDeletedCampaigns: () => Promise<Campaign[]>;
   donate: (
     pId: string,
     amountCents: number,
@@ -110,6 +127,7 @@ const campaignFromDoc = (
     image: data.image,
     payoutSentAt: data.payoutSentAt?.toMillis?.() ?? null,
     payoutTransactionId: data.payoutTransactionId ?? null,
+    deletedAt: data.deletedAt?.toMillis?.() ?? null,
   };
 };
 
@@ -197,7 +215,7 @@ export const StateContextProvider = ({
 
   const getCampaigns = async () => {
     const snap = await getDocs(collection(db, "campaigns"));
-    return snap.docs.map(campaignFromDoc);
+    return snap.docs.map(campaignFromDoc).filter((c) => !c.deletedAt);
   };
 
   const getCampaign = async (pId: string) => {
@@ -211,7 +229,12 @@ export const StateContextProvider = ({
       where("ownerAddress", "==", address),
     );
     const snap = await getDocs(q);
-    return snap.docs.map(campaignFromDoc);
+    return snap.docs.map(campaignFromDoc).filter((c) => !c.deletedAt);
+  };
+
+  const getDeletedCampaigns = async () => {
+    const snap = await getDocs(collection(db, "campaigns"));
+    return snap.docs.map(campaignFromDoc).filter((c) => !!c.deletedAt);
   };
 
   const getDonations = async (pId: string) => {
@@ -227,6 +250,8 @@ export const StateContextProvider = ({
         donatorName: data.donatorName || data.donatorAddress,
         donationCents: data.amountCents,
         createdAt: data.createdAt?.toMillis?.() ?? Date.now(),
+        isRealPayment: !!data.isRealPayment,
+        refundedAt: data.refundedAt?.toMillis?.() ?? null,
       };
     });
   };
@@ -304,6 +329,20 @@ export const StateContextProvider = ({
     });
   };
 
+  const updateCampaign = async (pId: string, updates: EditCampaignForm) => {
+    if (!isAdmin) throw new Error("Only the admin can edit campaigns");
+
+    await updateDoc(doc(db, "campaigns", pId), updates);
+  };
+
+  const deleteCampaign = async (pId: string) => {
+    if (!isAdmin) throw new Error("Only the admin can delete campaigns");
+
+    const callable = httpsCallable(functions, "deleteCampaign");
+    const result: any = await callable({ campaignId: pId });
+    return { refunded: !!result.data?.refunded };
+  };
+
   const getPaypalMode = async (): Promise<"sandbox" | "live"> => {
     const snap = await getDoc(doc(db, "config", "paypal"));
     return snap.data()?.mode === "live" ? "live" : "sandbox";
@@ -330,9 +369,12 @@ export const StateContextProvider = ({
         logout,
         markPayoutSent,
         createCampaign,
+        updateCampaign,
+        deleteCampaign,
         getCampaigns,
         getCampaign,
         getUserCampaigns,
+        getDeletedCampaigns,
         donate,
         getDonations,
         getBalance,

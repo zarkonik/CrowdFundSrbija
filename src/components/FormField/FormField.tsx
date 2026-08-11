@@ -3,12 +3,13 @@ import "./FormField.css";
 type FormFieldProps = {
   labelName: string;
   placeholder: string;
-  inputType: string;
-  isTextArea: boolean;
+  inputType?: string;
+  isTextArea?: boolean;
   value: string;
-  handleChange: () => void;
+  handleChange: (e: any) => void;
   min?: string;
   maxLength?: number;
+  disabled?: boolean;
 };
 
 const FormField = ({
@@ -20,6 +21,7 @@ const FormField = ({
   handleChange,
   min,
   maxLength,
+  disabled,
 }: FormFieldProps) => {
   return (
     <label className="form-field">
@@ -32,6 +34,7 @@ const FormField = ({
           rows={10}
           placeholder={placeholder}
           maxLength={maxLength}
+          disabled={disabled}
           className="form-field-input"
         />
       ) : (
@@ -43,6 +46,7 @@ const FormField = ({
           step="0.1"
           min={min}
           maxLength={maxLength}
+          disabled={disabled}
           placeholder={placeholder}
           className="form-field-input"
         />

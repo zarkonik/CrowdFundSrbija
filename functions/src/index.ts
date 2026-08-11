@@ -15,6 +15,8 @@ import {
 initializeApp();
 const db = getFirestore();
 
+const ADMIN_EMAIL = "crowdfundpersonal@gmail.com";
+
 const paypalSandboxClientId = defineString("PAYPAL_CLIENT_ID");
 const paypalSandboxClientSecret = defineSecret("PAYPAL_CLIENT_SECRET");
 const paypalLiveClientId = defineString("PAYPAL_LIVE_CLIENT_ID");
@@ -155,6 +157,56 @@ export const captureOrder = onCall(
   },
 );
 
+function makeAccessTokenCache() {
+  // Refunds must use whichever environment (sandbox/live) each donation was
+  // actually captured in, not the platform's current mode — the two can
+  // differ if the admin toggles mode between a donation and settlement.
+  const cache = new Map<PaypalEnv, Promise<string>>();
+  return (env: PaypalEnv) => {
+    if (!cache.has(env)) {
+      const { apiBase, clientId, clientSecret } = credentialsFor(env);
+      cache.set(env, getAccessToken(apiBase, clientId, clientSecret));
+    }
+    return cache.get(env)!;
+  };
+}
+
+async function refundCampaignDonations(
+  campaignRef: FirebaseFirestore.DocumentReference,
+  getAccessTokenFor: (env: PaypalEnv) => Promise<string>,
+) {
+  const donationsSnap = await campaignRef
+    .collection("donations")
+    .where("isRealPayment", "==", true)
+    .get();
+
+  for (const donationDoc of donationsSnap.docs) {
+    const donation = donationDoc.data();
+    if (donation.refundedAt || !donation.paypalCaptureId) continue;
+
+    const env: PaypalEnv = donation.paypalEnv === "live" ? "live" : "sandbox";
+
+    try {
+      const accessToken = await getAccessTokenFor(env);
+      const { apiBase } = credentialsFor(env);
+      const refund = await refundCapture(
+        apiBase,
+        accessToken,
+        donation.paypalCaptureId,
+      );
+      await donationDoc.ref.update({
+        refundedAt: FieldValue.serverTimestamp(),
+        refundId: refund.id,
+      });
+    } catch (err) {
+      console.error(
+        `Refund failed for donation ${donationDoc.id} on campaign ${campaignRef.id}`,
+        err,
+      );
+    }
+  }
+}
+
 async function settleDueCampaigns() {
   const nowSeconds = Math.floor(Date.now() / 1000);
 
@@ -166,20 +218,7 @@ async function settleDueCampaigns() {
 
   if (dueCampaigns.empty) return { settled: 0 };
 
-  // Refunds must use whichever environment (sandbox/live) each donation was
-  // actually captured in, not the platform's current mode — the two can
-  // differ if the admin toggles mode between a donation and the deadline.
-  const accessTokenCache = new Map<PaypalEnv, Promise<string>>();
-  const getAccessTokenFor = (env: PaypalEnv) => {
-    if (!accessTokenCache.has(env)) {
-      const { apiBase, clientId, clientSecret } = credentialsFor(env);
-      accessTokenCache.set(
-        env,
-        getAccessToken(apiBase, clientId, clientSecret),
-      );
-    }
-    return accessTokenCache.get(env)!;
-  };
+  const getAccessTokenFor = makeAccessTokenCache();
 
   for (const campaignDoc of dueCampaigns.docs) {
     const campaign = campaignDoc.data();
@@ -194,36 +233,7 @@ async function settleDueCampaigns() {
       continue;
     }
 
-    const donationsSnap = await campaignDoc.ref
-      .collection("donations")
-      .where("isRealPayment", "==", true)
-      .get();
-
-    for (const donationDoc of donationsSnap.docs) {
-      const donation = donationDoc.data();
-      if (donation.refundedAt || !donation.paypalCaptureId) continue;
-
-      const env: PaypalEnv = donation.paypalEnv === "live" ? "live" : "sandbox";
-
-      try {
-        const accessToken = await getAccessTokenFor(env);
-        const { apiBase } = credentialsFor(env);
-        const refund = await refundCapture(
-          apiBase,
-          accessToken,
-          donation.paypalCaptureId,
-        );
-        await donationDoc.ref.update({
-          refundedAt: FieldValue.serverTimestamp(),
-          refundId: refund.id,
-        });
-      } catch (err) {
-        console.error(
-          `Refund failed for donation ${donationDoc.id} on campaign ${campaignDoc.id}`,
-          err,
-        );
-      }
-    }
+    await refundCampaignDonations(campaignDoc.ref, getAccessTokenFor);
 
     await campaignDoc.ref.update({
       settledAt: FieldValue.serverTimestamp(),
@@ -245,5 +255,53 @@ export const settleCampaigns = onSchedule(
   },
   async () => {
     await settleDueCampaigns();
+  },
+);
+
+// "Deletes" a campaign — really a soft delete: it's hidden from public
+// listings but the doc and its donations are kept forever, since these are
+// financial records the admin needs to be able to look back at (who gave
+// how much, whether they were refunded). If the campaign hadn't already
+// succeeded, every real donation gets refunded first, exactly like a
+// normal failed/expired campaign would — deleting a campaign must never
+// be a way to silently strand donor money with no record of who to refund.
+export const deleteCampaign = onCall(
+  { secrets: [paypalSandboxClientSecret, paypalLiveClientSecret] },
+  async (request) => {
+    if (!request.auth || request.auth.token.email !== ADMIN_EMAIL) {
+      throw new HttpsError(
+        "permission-denied",
+        "Only the admin can delete campaigns",
+      );
+    }
+
+    const { campaignId } = request.data as { campaignId: string };
+    if (!campaignId) {
+      throw new HttpsError("invalid-argument", "Missing campaignId");
+    }
+
+    const campaignRef = db.doc(`campaigns/${campaignId}`);
+    const campaignSnap = await campaignRef.get();
+    if (!campaignSnap.exists) {
+      throw new HttpsError("not-found", "Campaign not found");
+    }
+
+    const campaign = campaignSnap.data()!;
+    const alreadySuccessful = campaign.fundingSuccessful === true;
+
+    if (!alreadySuccessful) {
+      const getAccessTokenFor = makeAccessTokenCache();
+      await refundCampaignDonations(campaignRef, getAccessTokenFor);
+    }
+
+    const updates: FirebaseFirestore.UpdateData<FirebaseFirestore.DocumentData> =
+      { deletedAt: FieldValue.serverTimestamp() };
+    if (!campaign.settledAt) {
+      updates.settledAt = FieldValue.serverTimestamp();
+      updates.fundingSuccessful = alreadySuccessful;
+    }
+    await campaignRef.update(updates);
+
+    return { success: true, refunded: !alreadySuccessful };
   },
 );

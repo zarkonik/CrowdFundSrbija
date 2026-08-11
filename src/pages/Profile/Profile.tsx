@@ -7,6 +7,8 @@ import "./Profile.css";
 const Profile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [campaigns, setCampaigns] = useState([]);
+  const [deletedCampaigns, setDeletedCampaigns] = useState([]);
+  const [isLoadingDeleted, setIsLoadingDeleted] = useState(false);
   const [paypalMode, setPaypalModeState] = useState<"sandbox" | "live" | null>(
     null,
   );
@@ -19,6 +21,7 @@ const Profile = () => {
     userPhotoURL,
     isAdmin,
     getUserCampaigns,
+    getDeletedCampaigns,
     getPaypalMode,
     setPaypalMode,
   }: any = useStateContext();
@@ -30,12 +33,22 @@ const Profile = () => {
     setIsLoading(false);
   };
 
+  const fetchDeletedCampaigns = async () => {
+    setIsLoadingDeleted(true);
+    const data = await getDeletedCampaigns();
+    setDeletedCampaigns(data);
+    setIsLoadingDeleted(false);
+  };
+
   useEffect(() => {
     if (address) fetchCampaigns();
   }, [address]);
 
   useEffect(() => {
-    if (isAdmin) getPaypalMode().then(setPaypalModeState);
+    if (isAdmin) {
+      getPaypalMode().then(setPaypalModeState);
+      fetchDeletedCampaigns();
+    }
   }, [isAdmin]);
 
   const handleSwitchMode = async (mode: "sandbox" | "live") => {
@@ -104,6 +117,14 @@ const Profile = () => {
         isLoading={isLoading}
         campaigns={campaigns}
       />
+
+      {isAdmin && (
+        <DisplayCampaigns
+          title="Removed Campaigns"
+          isLoading={isLoadingDeleted}
+          campaigns={deletedCampaigns}
+        />
+      )}
     </div>
   );
 };

@@ -1,0 +1,121 @@
+.edit-campaign-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 24px 16px;
+  z-index: 50;
+}
+
+.edit-campaign-modal {
+  background: var(--color-bg-card);
+  border-radius: 14px;
+  padding: 24px;
+  width: 100%;
+  max-width: 600px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.edit-campaign-modal-title {
+  font-family: var(--font-epilogue);
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--color-text-primary);
+}
+
+.edit-campaign-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.edit-campaign-modal-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.edit-campaign-modal-category-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.edit-campaign-modal-category-label {
+  font-family: var(--font-epilogue);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin-bottom: 10px;
+}
+
+.edit-campaign-modal-category-select {
+  padding: 15px;
+  outline: none;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+  font-family: var(--font-epilogue);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  border-radius: 10px;
+}
+
+.edit-campaign-modal-locked-notice {
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: var(--color-bg);
+  font-family: var(--font-epilogue);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--color-text-secondary);
+}
+
+.edit-campaign-modal-image-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.edit-campaign-modal-image-label {
+  font-family: var(--font-epilogue);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin-bottom: 10px;
+}
+
+.edit-campaign-modal-image-input {
+  padding: 15px;
+  outline: none;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  font-family: var(--font-epilogue);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  border-radius: 10px;
+}
+
+.edit-campaign-modal-error {
+  font-family: var(--font-epilogue);
+  font-size: 13px;
+  color: var(--color-danger);
+}
+
+.edit-campaign-modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.edit-campaign-modal-save-button {
+  flex: 1;
+  background: var(--color-accent-purple);
+}
+
+.edit-campaign-modal-cancel-button {
+  flex: 1;
+  background: var(--color-border);
+}
