@@ -85,11 +85,12 @@ const CreateCampaign = () => {
             handleChange={(e: any) => handleFormFieldChange("name", e)}
           />
           <FormField
-            labelName="Campaign Title *"
-            placeholder="Write a title"
+            labelName="Campaign Title * (make it catchy!)"
+            placeholder="e.g. Help Me Record My Debut Album"
             inputType="text"
             value={form.title}
             handleChange={(e: any) => handleFormFieldChange("title", e)}
+            maxLength={70}
           />
         </div>
 

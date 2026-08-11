@@ -5,6 +5,7 @@ import {
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   updateProfile,
   type User,
 } from "firebase/auth";
@@ -71,6 +72,7 @@ type StateContextType = {
     displayName: string,
   ) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   logout: () => void;
   markPayoutSent: (pId: string, transactionId?: string) => Promise<void>;
   createCampaign: (form: CreateCampaignForm) => Promise<Campaign>;
@@ -161,6 +163,10 @@ export const StateContextProvider = ({
 
   const signInWithEmail = async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password);
+  };
+
+  const resetPassword = async (email: string) => {
+    await sendPasswordResetEmail(auth, email);
   };
 
   const logout = () => {
@@ -320,6 +326,7 @@ export const StateContextProvider = ({
         connect,
         signUpWithEmail,
         signInWithEmail,
+        resetPassword,
         logout,
         markPayoutSent,
         createCampaign,

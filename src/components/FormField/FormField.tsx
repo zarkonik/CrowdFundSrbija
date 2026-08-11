@@ -8,6 +8,7 @@ type FormFieldProps = {
   value: string;
   handleChange: () => void;
   min?: string;
+  maxLength?: number;
 };
 
 const FormField = ({
@@ -18,6 +19,7 @@ const FormField = ({
   value,
   handleChange,
   min,
+  maxLength,
 }: FormFieldProps) => {
   return (
     <label className="form-field">
@@ -29,6 +31,7 @@ const FormField = ({
           onChange={handleChange}
           rows={10}
           placeholder={placeholder}
+          maxLength={maxLength}
           className="form-field-input"
         />
       ) : (
@@ -39,9 +42,15 @@ const FormField = ({
           type={inputType}
           step="0.1"
           min={min}
+          maxLength={maxLength}
           placeholder={placeholder}
           className="form-field-input"
         />
+      )}
+      {maxLength && (
+        <span className="form-field-counter">
+          {value.length}/{maxLength}
+        </span>
       )}
     </label>
   );

@@ -194,7 +194,10 @@
   font-size: 16px;
   color: var(--color-text-secondary);
   line-height: 26px;
-  text-align: justify;
+  text-align: left;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-line;
 }
 
 .campaign-details-donators {
@@ -235,7 +238,7 @@
   font-size: 16px;
   color: var(--color-text-secondary);
   line-height: 26px;
-  text-align: justify;
+  text-align: left;
 }
 
 .campaign-details-fund {

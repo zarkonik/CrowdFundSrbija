@@ -73,6 +73,32 @@
   color: var(--color-danger);
 }
 
+.auth-modal-message {
+  font-family: var(--font-epilogue);
+  font-size: 13px;
+  color: var(--color-accent-green);
+}
+
+.auth-modal-forgot-title {
+  font-family: var(--font-epilogue);
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--color-text-primary);
+  text-align: center;
+}
+
+.auth-modal-forgot-link {
+  align-self: flex-end;
+  margin-top: -6px;
+  border: none;
+  background: transparent;
+  font-family: var(--font-epilogue);
+  font-size: 13px;
+  color: var(--color-accent-purple);
+  cursor: pointer;
+  padding: 0;
+}
+
 .auth-modal-submit-button {
   width: 100%;
   background: var(--color-accent-purple);

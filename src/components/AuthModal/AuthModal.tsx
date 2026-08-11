@@ -19,28 +19,40 @@ const FRIENDLY_ERRORS: Record<string, string> = {
 };
 
 const AuthModal = ({ onClose }: AuthModalProps) => {
-  const { connect, signUpWithEmail, signInWithEmail }: any =
+  const { connect, signUpWithEmail, signInWithEmail, resetPassword }: any =
     useStateContext();
 
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const switchMode = (next: "signin" | "signup" | "forgot") => {
+    setMode(next);
+    setError("");
+    setMessage("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setMessage("");
     setIsLoading(true);
 
     try {
       if (mode === "signup") {
         await signUpWithEmail(email, password, name);
+        onClose();
+      } else if (mode === "forgot") {
+        await resetPassword(email);
+        setMessage("Password reset email sent — check your inbox.");
       } else {
         await signInWithEmail(email, password);
+        onClose();
       }
-      onClose();
     } catch (err: any) {
       setError(FRIENDLY_ERRORS[err?.code] ?? "Something went wrong. Please try again.");
     } finally {
@@ -57,28 +69,28 @@ const AuthModal = ({ onClose }: AuthModalProps) => {
     <div className="auth-modal-overlay">
       {isLoading && <Loader />}
       <div className="auth-modal">
-        <div className="auth-modal-tabs">
-          <button
-            type="button"
-            className={`auth-modal-tab ${mode === "signin" ? "is-active" : ""}`}
-            onClick={() => {
-              setMode("signin");
-              setError("");
-            }}
-          >
-            Log In
-          </button>
-          <button
-            type="button"
-            className={`auth-modal-tab ${mode === "signup" ? "is-active" : ""}`}
-            onClick={() => {
-              setMode("signup");
-              setError("");
-            }}
-          >
-            Sign Up
-          </button>
-        </div>
+        {mode !== "forgot" && (
+          <div className="auth-modal-tabs">
+            <button
+              type="button"
+              className={`auth-modal-tab ${mode === "signin" ? "is-active" : ""}`}
+              onClick={() => switchMode("signin")}
+            >
+              Log In
+            </button>
+            <button
+              type="button"
+              className={`auth-modal-tab ${mode === "signup" ? "is-active" : ""}`}
+              onClick={() => switchMode("signup")}
+            >
+              Sign Up
+            </button>
+          </div>
+        )}
+
+        {mode === "forgot" && (
+          <h4 className="auth-modal-forgot-title">Reset your password</h4>
+        )}
 
         <form className="auth-modal-form" onSubmit={handleSubmit}>
           {mode === "signup" && (
@@ -101,43 +113,73 @@ const AuthModal = ({ onClose }: AuthModalProps) => {
             required
           />
 
-          <input
-            type="password"
-            placeholder="Password"
-            className="auth-modal-input"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            minLength={6}
-            required
-          />
+          {mode !== "forgot" && (
+            <input
+              type="password"
+              placeholder="Password"
+              className="auth-modal-input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={6}
+              required
+            />
+          )}
+
+          {mode === "signin" && (
+            <button
+              type="button"
+              className="auth-modal-forgot-link"
+              onClick={() => switchMode("forgot")}
+            >
+              Forgot password?
+            </button>
+          )}
 
           {error && <p className="auth-modal-error">{error}</p>}
+          {message && <p className="auth-modal-message">{message}</p>}
 
           <CustomButton
             btnType="submit"
-            title={mode === "signup" ? "Create Account" : "Log In"}
+            title={
+              mode === "signup"
+                ? "Create Account"
+                : mode === "forgot"
+                  ? "Send Reset Link"
+                  : "Log In"
+            }
             styles="auth-modal-submit-button"
             handleClick={() => {}}
           />
         </form>
 
-        <div className="auth-modal-divider">
-          <span>or</span>
-        </div>
+        {mode === "forgot" ? (
+          <CustomButton
+            btnType="button"
+            title="Back to Log In"
+            styles="auth-modal-cancel-button"
+            handleClick={() => switchMode("signin")}
+          />
+        ) : (
+          <>
+            <div className="auth-modal-divider">
+              <span>or</span>
+            </div>
 
-        <CustomButton
-          btnType="button"
-          title="Continue with Google"
-          styles="auth-modal-google-button"
-          handleClick={handleGoogle}
-        />
+            <CustomButton
+              btnType="button"
+              title="Continue with Google"
+              styles="auth-modal-google-button"
+              handleClick={handleGoogle}
+            />
 
-        <CustomButton
-          btnType="button"
-          title="Cancel"
-          styles="auth-modal-cancel-button"
-          handleClick={onClose}
-        />
+            <CustomButton
+              btnType="button"
+              title="Cancel"
+              styles="auth-modal-cancel-button"
+              handleClick={onClose}
+            />
+          </>
+        )}
       </div>
     </div>
   );
