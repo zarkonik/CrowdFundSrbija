@@ -25,7 +25,9 @@ const CLIENT_ID_BY_MODE: Record<"sandbox" | "live", string> = {
 
 const loadPayPalSdk = (mode: "sandbox" | "live") =>
   new Promise<void>((resolve, reject) => {
-    const sdkUrl = `https://www.paypal.com/sdk/js?client-id=${CLIENT_ID_BY_MODE[mode]}&currency=USD`;
+    // enable-funding=card guarantees the guest debit/credit card button
+    // always renders, instead of leaving it to PayPal's own heuristics.
+    const sdkUrl = `https://www.paypal.com/sdk/js?client-id=${CLIENT_ID_BY_MODE[mode]}&currency=USD&enable-funding=card`;
 
     // A previously-loaded SDK is tied to whichever client-id it was loaded
     // with, so a mode switch mid-session needs a fresh script, not the
@@ -70,6 +72,9 @@ const RealPayPalModal = ({
   amountRef.current = amount;
   nameRef.current = name;
 
+  const cents = Math.round(parseFloat(amount) * 100);
+  const canSubmit = name.trim().length > 0 && Number.isFinite(cents) && cents > 0;
+
   useEffect(() => {
     let cancelled = false;
 
@@ -88,9 +93,9 @@ const RealPayPalModal = ({
           .Buttons({
             createOrder: async () => {
               const cents = Math.round(parseFloat(amountRef.current) * 100);
-              if (!Number.isFinite(cents) || cents <= 0) {
-                setError("Enter a valid amount before continuing");
-                throw new Error("Invalid amount");
+              if (!nameRef.current.trim() || !Number.isFinite(cents) || cents <= 0) {
+                setError("Enter your name and a valid amount before continuing.");
+                throw new Error("VALIDATION");
               }
               setError("");
 
@@ -111,6 +116,9 @@ const RealPayPalModal = ({
               onSuccess();
             },
             onError: (err: any) => {
+              // Our own validation throw already set a specific message —
+              // don't clobber it with the generic one.
+              if (err?.message === "VALIDATION") return;
               console.error(err);
               setError("Payment failed. Please try again.");
             },
@@ -133,7 +141,7 @@ const RealPayPalModal = ({
     <div className="real-paypal-modal-overlay">
       {isLoading && <Loader />}
       <div className="real-paypal-modal">
-        <h4 className="real-paypal-modal-title">Pay with PayPal</h4>
+        <h4 className="real-paypal-modal-title">Pay with PayPal or Card</h4>
 
         {mode === "sandbox" && (
           <p className="real-paypal-modal-sandbox-notice">
@@ -158,12 +166,30 @@ const RealPayPalModal = ({
           onChange={(e) => setAmount(e.target.value)}
         />
 
+        {!canSubmit && (
+          <p className="real-paypal-modal-hint">
+            Enter your name and a valid amount to continue.
+          </p>
+        )}
+
         {error && <p className="real-paypal-modal-error">{error}</p>}
 
-        <div
-          className="real-paypal-modal-buttons"
-          ref={buttonsContainerRef}
-        />
+        <div className="real-paypal-modal-buttons-wrap">
+          <div
+            className={`real-paypal-modal-buttons ${
+              !canSubmit ? "is-disabled" : ""
+            }`}
+            ref={buttonsContainerRef}
+          />
+          {!canSubmit && (
+            <div
+              className="real-paypal-modal-buttons-blocker"
+              onClick={() =>
+                setError("Enter your name and a valid amount before continuing.")
+              }
+            />
+          )}
+        </div>
 
         <CustomButton
           btnType="button"

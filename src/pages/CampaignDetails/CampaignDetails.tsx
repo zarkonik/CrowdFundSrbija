@@ -237,7 +237,7 @@ const CampaignDetails = () => {
 
               <CustomButton
                 btnType="button"
-                title="Fund with PayPal"
+                title="Fund with PayPal or Card"
                 styles="campaign-details-fund-button"
                 handleClick={() => setPayModal("real")}
               />
