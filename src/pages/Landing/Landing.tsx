@@ -111,11 +111,14 @@ const Landing = () => {
       </section>
 
       <section className="landing-section">
-        <h2 className="landing-section-title">Why CrowdFundPersonal</h2>
-        <p className="landing-section-subtitle">
-          Built to be small, trustworthy, and genuinely useful for the people
-          making things — not another platform optimizing for scale.
-        </p>
+        <div className="landing-section-header">
+          <h2 className="landing-section-title">Why CrowdFundPersonal</h2>
+          <p className="landing-section-subtitle">
+            Built to be small, trustworthy, and genuinely useful for the
+            people making things — not another platform optimizing for
+            scale.
+          </p>
+        </div>
 
         <div className="landing-features-grid">
           {features.map((feature) => (
@@ -129,7 +132,9 @@ const Landing = () => {
       </section>
 
       <section className="landing-section">
-        <h2 className="landing-section-title">How it works</h2>
+        <div className="landing-section-header">
+          <h2 className="landing-section-title">How it works</h2>
+        </div>
 
         <div className="landing-steps">
           {steps.map((step) => (
@@ -143,11 +148,15 @@ const Landing = () => {
       </section>
 
       <section className="landing-section">
-        <h2 className="landing-section-title">Every kind of personal project</h2>
-        <p className="landing-section-subtitle">
-          Pick a category and start browsing, or find where your own project
-          belongs.
-        </p>
+        <div className="landing-section-header">
+          <h2 className="landing-section-title">
+            Every kind of personal project
+          </h2>
+          <p className="landing-section-subtitle">
+            Pick a category and start browsing, or find where your own
+            project belongs.
+          </p>
+        </div>
 
         <div className="landing-categories">
           {categories.map((category: string) => (

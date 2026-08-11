@@ -64,6 +64,13 @@ const Navbar = () => {
           onClick={() => setToggleDrawer((prev) => !prev)}
         />
 
+        {toggleDrawer && (
+          <div
+            className="navbar-drawer-backdrop"
+            onClick={() => setToggleDrawer(false)}
+          />
+        )}
+
         <div className={`navbar-drawer ${toggleDrawer ? "is-open" : ""}`}>
           <ul className="navbar-drawer-links">
             {navlinks.map((link: any) => (
@@ -100,8 +107,11 @@ const Navbar = () => {
             <CustomButton
               btnType="button"
               title={address ? "Create a campaign" : "Sign up with Google"}
-              styles={address ? "navbar-btn-create" : "navbar-btn-connect"}
+              styles={`navbar-drawer-button-full ${
+                address ? "navbar-btn-create" : "navbar-btn-connect"
+              }`}
               handleClick={() => {
+                setToggleDrawer(false);
                 if (address) navigate("create-campaign");
                 else connect();
               }}
@@ -113,8 +123,11 @@ const Navbar = () => {
               <CustomButton
                 btnType="button"
                 title="My Profile"
-                styles="navbar-btn-profile"
-                handleClick={() => navigate("/profile")}
+                styles="navbar-drawer-button-full navbar-btn-profile"
+                handleClick={() => {
+                  setToggleDrawer(false);
+                  navigate("/profile");
+                }}
               />
             </div>
           )}
