@@ -66,6 +66,15 @@
   color: var(--color-text-secondary);
 }
 
+.real-paypal-modal-stuck-hint {
+  margin-top: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(248, 113, 113, 0.1);
+  color: var(--color-text-primary);
+  line-height: 18px;
+}
+
 .real-paypal-modal-error {
   font-family: var(--font-epilogue);
   font-size: 13px;

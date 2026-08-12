@@ -26,6 +26,16 @@ const CLIENT_ID_BY_MODE: Record<"sandbox" | "live", string> = {
 const findScriptByExactSrc = (src: string) =>
   Array.from(document.scripts).find((s) => s.src === src);
 
+// Wraps a promise so a hang (not just a rejection) still resolves into a
+// visible error instead of leaving the modal stuck on its loader forever.
+const withTimeout = <T,>(promise: Promise<T>, ms: number, message: string) =>
+  Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(message)), ms),
+    ),
+  ]);
+
 const loadPayPalSdk = (mode: "sandbox" | "live") =>
   new Promise<void>((resolve, reject) => {
     // enable-funding=card guarantees the guest debit/credit card button
@@ -71,12 +81,29 @@ const RealPayPalModal = ({
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [mode, setMode] = useState<"sandbox" | "live" | null>(null);
+  const [checkoutStuckHint, setCheckoutStuckHint] = useState(false);
 
   const buttonsContainerRef = useRef<HTMLDivElement>(null);
   const amountRef = useRef(amount);
   const nameRef = useRef(name);
+  const stuckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   amountRef.current = amount;
   nameRef.current = name;
+
+  const clearStuckWatchdog = () => {
+    if (stuckTimerRef.current) {
+      clearTimeout(stuckTimerRef.current);
+      stuckTimerRef.current = null;
+    }
+    setCheckoutStuckHint(false);
+  };
+
+  const armStuckWatchdog = () => {
+    clearStuckWatchdog();
+    stuckTimerRef.current = setTimeout(() => {
+      setCheckoutStuckHint(true);
+    }, 20000);
+  };
 
   const cents = Math.round(parseFloat(amount) * 100);
   const canSubmit = name.trim().length > 0 && Number.isFinite(cents) && cents > 0;
@@ -84,11 +111,11 @@ const RealPayPalModal = ({
   useEffect(() => {
     let cancelled = false;
 
-    getPaypalMode()
+    withTimeout<"sandbox" | "live">(getPaypalMode(), 10000, "TIMEOUT_MODE")
       .then((resolvedMode: "sandbox" | "live") => {
         if (cancelled) return;
         setMode(resolvedMode);
-        return loadPayPalSdk(resolvedMode);
+        return withTimeout(loadPayPalSdk(resolvedMode), 10000, "TIMEOUT_SDK");
       })
       .then(() => {
         if (cancelled || !window.paypal || !buttonsContainerRef.current) {
@@ -97,10 +124,15 @@ const RealPayPalModal = ({
 
         window.paypal
           .Buttons({
+            onClick: () => {
+              setError("");
+              armStuckWatchdog();
+            },
             createOrder: async () => {
               const cents = Math.round(parseFloat(amountRef.current) * 100);
               if (!nameRef.current.trim() || !Number.isFinite(cents) || cents <= 0) {
                 setError("Enter your name and a valid amount before continuing.");
+                clearStuckWatchdog();
                 throw new Error("VALIDATION");
               }
               setError("");
@@ -113,6 +145,7 @@ const RealPayPalModal = ({
               return result.data.orderId;
             },
             onApprove: async (data: any) => {
+              clearStuckWatchdog();
               const captureOrder = httpsCallable(functions, "captureOrder");
               await captureOrder({
                 orderId: data.orderID,
@@ -121,27 +154,44 @@ const RealPayPalModal = ({
               });
               onSuccess();
             },
+            onCancel: () => {
+              clearStuckWatchdog();
+            },
             onError: (err: any) => {
+              clearStuckWatchdog();
               // Our own validation throw already set a specific message —
               // don't clobber it with the generic one.
               if (err?.message === "VALIDATION") return;
-              console.error(err);
+              console.error("PayPal Buttons error:", err);
               setError("Payment failed. Please try again.");
             },
           })
-          .render(buttonsContainerRef.current);
+          .render(buttonsContainerRef.current)
+          .catch((err: unknown) => {
+            if (cancelled) return;
+            console.error("Failed to render PayPal buttons:", err);
+            setError("Could not display PayPal buttons. Please try again later.");
+          });
 
         setIsLoading(false);
       })
       .catch((err: unknown) => {
+        if (cancelled) return;
         console.error("Failed to load PayPal:", err);
-        setError("Could not load PayPal. Please try again later.");
+        const timedOut = err instanceof Error && err.message.startsWith("TIMEOUT_");
+        setError(
+          timedOut
+            ? "PayPal is taking too long to respond. Please try again in a moment."
+            : "Could not load PayPal. Please try again later.",
+        );
         setIsLoading(false);
       });
 
     return () => {
       cancelled = true;
+      clearStuckWatchdog();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pId, onSuccess]);
 
   return (
@@ -180,6 +230,14 @@ const RealPayPalModal = ({
         )}
 
         {error && <p className="real-paypal-modal-error">{error}</p>}
+
+        {checkoutStuckHint && (
+          <p className="real-paypal-modal-hint real-paypal-modal-stuck-hint">
+            This is taking longer than expected. If a PayPal window opened
+            and seems stuck, close it and try again — this can happen when
+            PayPal is having an issue on their end.
+          </p>
+        )}
 
         <div className="real-paypal-modal-buttons-wrap">
           <div
