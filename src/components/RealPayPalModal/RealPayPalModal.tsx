@@ -18,9 +18,12 @@ type RealPayPalModalProps = {
   pId: string;
 };
 
+// .trim() guards against stray whitespace/newlines sneaking into these
+// values when they're copy-pasted into a hosting provider's env var UI —
+// PayPal's SDK rejects the whole script URL if the client-id contains one.
 const CLIENT_ID_BY_MODE: Record<"sandbox" | "live", string> = {
-  sandbox: import.meta.env.VITE_PAYPAL_SANDBOX_CLIENT_ID,
-  live: import.meta.env.VITE_PAYPAL_LIVE_CLIENT_ID,
+  sandbox: (import.meta.env.VITE_PAYPAL_SANDBOX_CLIENT_ID ?? "").trim(),
+  live: (import.meta.env.VITE_PAYPAL_LIVE_CLIENT_ID ?? "").trim(),
 };
 
 const findScriptByExactSrc = (src: string) =>

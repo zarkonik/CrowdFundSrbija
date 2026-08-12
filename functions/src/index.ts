@@ -32,17 +32,20 @@ async function getPaypalMode(): Promise<PaypalEnv> {
   return snap.data()?.mode === "live" ? "live" : "sandbox";
 }
 
+// .trim() guards against stray whitespace/newlines in these values — a
+// trailing newline in a client-id corrupted the PayPal SDK URL on the
+// frontend, and the same issue would corrupt the Basic Auth header here.
 function credentialsFor(env: PaypalEnv) {
   return env === "live"
     ? {
         apiBase: LIVE_API_BASE,
-        clientId: paypalLiveClientId.value(),
-        clientSecret: paypalLiveClientSecret.value(),
+        clientId: paypalLiveClientId.value().trim(),
+        clientSecret: paypalLiveClientSecret.value().trim(),
       }
     : {
         apiBase: SANDBOX_API_BASE,
-        clientId: paypalSandboxClientId.value(),
-        clientSecret: paypalSandboxClientSecret.value(),
+        clientId: paypalSandboxClientId.value().trim(),
+        clientSecret: paypalSandboxClientSecret.value().trim(),
       };
 }
 
